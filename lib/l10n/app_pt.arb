@@ -1,0 +1,58 @@
+{
+  "appTitle": "FutSim Avançado",
+  "exportLog": "Exportar log",
+  "startMatch": "Iniciar Partida",
+  "stop": "Parar",
+  "invalidLineups": "Escalações inválidas. Verifique GOL/DEF/MEI/ATA.",
+  "noEventsToExport": "Sem eventos para exportar.",
+  "autoPick": "Autoescalar",
+  "subs": "Subs ({count} rest.)",
+  "validLineup": "Escalação válida",
+  "incompleteLineup": "Escalação incompleta",
+  "teamName": "Nome do time",
+  "formation": "Formação",
+  "startButton": "Iniciar Partida",
+
+  "possessionLabel": "Posse",
+  "xgLabel": "xG",
+  "minuteShort": "Min {minute}",
+
+  "labelBias": "Viés",
+  "labelTempo": "Ritmo",
+  "labelPressing": "Pressão",
+  "labelLine": "Linha def.",
+  "labelWidth": "Largura",
+  "labelAutoSubs": "Auto-subs",
+
+  "defensive": "Defensivo",
+  "offensive": "Ofensivo",
+  "low": "Baixo",
+  "high": "Alto",
+  "narrow": "Estreito",
+  "wide": "Aberto",
+
+  "edit": "Editar",
+  "cancel": "Cancelar",
+  "save": "Salvar",
+
+  "statusInjured": "LES",
+  "statusSentOff": "EXP",
+
+  "subsDialogTitle": "Substituições - {team} ({left} restantes)",
+  "onField": "Em campo",
+  "bench": "Banco",
+  "confirm": "Confirmar",
+  "close": "Fechar",
+
+  "kickoff": "Início de jogo!",
+  "coolMinute": "{minute}': jogo cadenciado no meio-campo.",
+  "goal": "GOOOOOOL! {team} marca com {player}.",
+  "foulYellow": "Falta forte. Cartão amarelo para {player} ({team}).",
+  "foulRed": "Entrada duríssima! Cartão vermelho para {player} ({team}).",
+  "secondYellow": "Segundo amarelo! {player} está expulso.",
+  "injury": "Lesão! {player} ({team}) cai sentindo.",
+  "subTired": "Substituição {team}: {out} exausto, entra {inn}.",
+  "subInjury": "Substituição {team}: {out} sente e sai, entra {inn}.",
+  "subYellowRisk": "Substituição {team}: {out} (amarelado) dá lugar a {inn}.",
+  "endMatch": "Fim de jogo!"
+}

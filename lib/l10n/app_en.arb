@@ -1,0 +1,58 @@
+{
+  "appTitle": "FutSim Advanced",
+  "exportLog": "Export log",
+  "startMatch": "Start Match",
+  "stop": "Stop",
+  "invalidLineups": "Invalid lineups. Check GK/DEF/MID/FWD.",
+  "noEventsToExport": "No events to export.",
+  "autoPick": "Auto-pick",
+  "subs": "Subs ({count} left)",
+  "validLineup": "Valid lineup",
+  "incompleteLineup": "Incomplete lineup",
+  "teamName": "Team name",
+  "formation": "Formation",
+  "startButton": "Start Match",
+
+  "possessionLabel": "Possession",
+  "xgLabel": "xG",
+  "minuteShort": "Min {minute}",
+
+  "labelBias": "Bias",
+  "labelTempo": "Tempo",
+  "labelPressing": "Pressing",
+  "labelLine": "Def. line",
+  "labelWidth": "Width",
+  "labelAutoSubs": "Auto-subs",
+
+  "defensive": "Defensive",
+  "offensive": "Offensive",
+  "low": "Low",
+  "high": "High",
+  "narrow": "Narrow",
+  "wide": "Wide",
+
+  "edit": "Edit",
+  "cancel": "Cancel",
+  "save": "Save",
+
+  "statusInjured": "INJ",
+  "statusSentOff": "OFF",
+
+  "subsDialogTitle": "Substitutions - {team} ({left} left)",
+  "onField": "On field",
+  "bench": "Bench",
+  "confirm": "Confirm",
+  "close": "Close",
+
+  "kickoff": "Kick-off!",
+  "coolMinute": "{minute}': calm minute in midfield.",
+  "goal": "GOAL! {team} scores with {player}.",
+  "foulYellow": "Strong foul. Yellow card for {player} ({team}).",
+  "foulRed": "Horrible tackle! Red card for {player} ({team}).",
+  "secondYellow": "Second yellow! {player} is sent off.",
+  "injury": "Injury! {player} ({team}) goes down hurt.",
+  "subTired": "Substitution {team}: {out} exhausted, {inn} comes in.",
+  "subInjury": "Substitution {team}: {out} feels pain and leaves, {inn} comes in.",
+  "subYellowRisk": "Substitution {team}: {out} (booked) out, {inn} in.",
+  "endMatch": "Full time!"
+}
