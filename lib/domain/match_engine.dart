@@ -309,7 +309,9 @@ class MatchEngine {
           scoreB++;
           xgB += shotXg;
         }
-        final suffix = ev.xg != null ? " (xG ${shotXg.toStringAsFixed(2)})" : "";
+        final suffix = ev.xg != null
+            ? " (xG ${shotXg.toStringAsFixed(2)})"
+            : "";
         _controller.add(
           MatchEvent(
             minute,
@@ -325,7 +327,9 @@ class MatchEngine {
         );
       } else if (ev.type == _SeqType.card) {
         final offender = ev.offender!;
-        final color = ev.cardType == _CardType.red ? CardColor.red : CardColor.yellow;
+        final color = ev.cardType == _CardType.red
+            ? CardColor.red
+            : CardColor.yellow;
         _controller.add(
           MatchEvent(
             minute,
@@ -426,8 +430,8 @@ class MatchEngine {
         int w = p.pos == Position.FWD
             ? 3
             : p.pos == Position.MID
-                ? 2
-                : 1;
+            ? 2
+            : 1;
         for (int i = 0; i < w; i++) {
           weighted.add(p);
         }

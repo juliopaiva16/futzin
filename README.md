@@ -1,16 +1,21 @@
-# futzin
+# Futzin
 
-A new Flutter project.
+Futzin é um simulador de futebol feito em Flutter com formações, táticas, xG, gráfico de momentum e log de eventos.
 
-## Getting Started
+Futzin is a Flutter football simulator with formations, tactics, xG, a momentum chart and a live event log.
 
-This project is a starting point for a Flutter application.
+## 📄 Documentação / Documentation
 
-A few resources to get you started if this is your first Flutter project:
+- 🇧🇷 Manual do Usuário: [user_guide_pt.md](./user_guide_pt.md)
+- 🇺🇸 User Guide: [user_guide_en.md](./user_guide_en.md)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- 🇧🇷 README para Devs/IA: [readme_pt.md](./readme_pt.md)
+- 🇺🇸 Developer README: [readme_en.md](./readme_en.md)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🚀 Como começar / Getting Started
+
+- Flutter SDK instalado. Rode:
+  - `flutter pub get`
+  - `flutter run -d chrome|android|ios|macos|linux|windows`
+
+Para detalhes completos, consulte os READMEs específicos acima.
