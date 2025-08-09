@@ -127,4 +127,16 @@ class EngineParams {
   // Launch (50/50) parameters
   static const double graphLaunchWinProb = 0.48; // probability retaining possession after launch
   // Hold/back pass modest intercept risk reduction (removed duplicate older defs below)
+
+  // Ability modifiers (Phase 5)
+  static const double graphAbilityVisInterceptRel = 0.10; // passer VIS reduces multi+single intercept chance rel
+  static const double graphAbilityPasShortRel = 0.05; // PAS reduces short/back intercept
+  static const double graphAbilityPasLongSuccess = 0.03; // PAS increases long pass success abs before clamp
+  static const double graphAbilityDrbSuccessAdd = 0.05; // DRB additive to dribble success before clamp
+  static const double graphAbilityDrbExtraWeight = 0.15; // DRB extra dribble action weight multiplier
+  static const double graphAbilityFinPGoalRel = 0.07; // FIN increases pGoal relative (post base calc)
+  static const double graphAbilityWallInterceptRel = 0.05; // WALL defenders increase intercept rel (once)
+  static const double graphAbilityCatSaveRel = 0.06; // CAT reduces pGoal rel
+  static const double graphAbilityEngStaminaDecayRel = 0.25; // ENG reduces stamina decay (future loop)
+  static const double graphAbilityCapTeamAdj = 0.03; // CAP small team attack/defense adj
 }

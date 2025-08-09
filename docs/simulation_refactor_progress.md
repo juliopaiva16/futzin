@@ -13,9 +13,9 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 |------|-----------|------------------|--------|-------------|----------|
 | 1 | Infra posições & Role enum (sem mudar lógica) | Role enum, coord alloc, serialização | DONE | 2025-08-09 | 2025-08-09 |
 | 2 | Micro motor PassCurto + Chute simples | PlayerNode adapter, edge builder básico, substitui _buildAttackSequence opcional | DONE | 2025-08-09 | 2025-08-09 |
-| 3 | Arestas ponderadas + intercept multi-defensor | Peso aresta, pressão, intercept calc | TODO | - | - |
-| 4 | Ações adicionais (PassLongo, Drible, Recuar, Manter, Lançamento) | Scoring tabela, softmax decisão | TODO | - | - |
-| 5 | Habilidades (passes + drible + finalização + defesa) | Aplicar mapa de efeitos por fase | TODO | - | - |
+| 3 | Arestas ponderadas + intercept multi-defensor | Peso aresta, pressão, intercept calc | DONE | 2025-08-09 | 2025-08-09 |
+| 4 | Ações adicionais (PassLongo, Drible, Recuar, Manter, Lançamento) | Scoring tabela, softmax decisão | TUNE | 2025-08-09 | - |
+| 5 | Habilidades (passes + drible + finalização + defesa) | Aplicar mapa de efeitos por fase | TUNE | 2025-08-09 | - |
 | 6 | Stamina nova + recalibração ratings | Decay tick, attrEff, testes ENG | TODO | - | - |
 | 7 | Momentum/xG tuning | Ajustar ranges, comparar baseline | TODO | - | - |
 | 8 | Flag modo experimental + UI toggles | Persistência flag, fallback engine antiga | DONE | 2025-08-09 | 2025-08-09 |
@@ -33,54 +33,68 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 - [x] Edge builder curto (dist, weight trivial=1/dist) Fase 2.
 - [x] Seleção de alvo pass usando RNG proporcional.
 - [x] Chute simples (reuse fórmula antiga xg) integrando posição (distGol).
-- [ ] Switch condicional (flag experimental) para usar graph path vs _buildAttackSequence. // parcial (já alterna sequência)
-- [ ] Test unit: action selection monotonicidade (fase 4).
-- [ ] Implementar intercept multi-defensor (fase 3) com P_intercept.
-- [ ] Drible resolução (fase 4).
-- [ ] Long pass (fase 4) + penalização distância.
-- [ ] Habilidades passes (VIS, PAS) → peso aresta / probSucesso.
-- [ ] Habilidades finalização (FIN, HDR, CLT) → pós pGoal.
-- [ ] Habilidades defensivas (WALL, MRK, AER, REF, CAT, COM) → pSave / pGoal.
-- [ ] Habilidades stamina (ENG, B2B, SPR, SWS) → decay.
-- [ ] Tuning script batch sim (500 jogos) comparar baseline.
+- [x] Switch condicional (flag experimental) para usar graph path vs _buildAttackSequence.
+- [x] Implementar intercept multi-defensor (fase 3) com P_intercept (modelo complementar multiplicativo v2).
+- [x] Arestas ponderadas: penalização de congestion (graphEdgeCongestion*).
+- [x] Drible resolução básica (probabilidade + avanço pequeno + falha → perda).
+- [x] Long pass + penalização por distância + blend intercept.
+- [x] Ações adicionais (back, hold, launch) + pesos e caps por sequência.
+- [x] Boost adaptativo pós ação arriscada (graphAdaptiveShortBoost).
+- [x] Habilidades passes (VIS, PAS) aplicadas em intercept & sucesso.
+- [x] Habilidades drible (DRB) aplicadas (peso + sucesso).
+- [x] Habilidades finalização (FIN) aplicadas pGoal pós cálculo (sem duplicar xG).
+- [x] Habilidades defensivas parciais (WALL intercept rel, CAT save/pGoal + rating parcial, CAP team adj).
+- [ ] Habilidades stamina (ENG) (placeholder só em params; ainda não aplicado no decay real).
+- [ ] Outras habilidades planeadas (MRK, AER, REF, COM, HDR, CLT, B2B, SPR, SWS) – não implementadas.
+- [x] Script batch expandido (métricas detalhadas: tipos de passe, drible, launch, habilidades).
+- [ ] Test unit: action selection monotonicidade.
+- [ ] Test unit: intercept multi-defensor monotônico (#defs ↑ → P_intercept ↑).
+- [ ] Test unit: efeitos VIS/PAS/FIN/DRB estatisticamente (> threshold relativo) em cenários fixos.
 - [ ] Atualizar momentum cálculo para micro-ticks (agregado).
 - [ ] Documentar parâmetros ajustados no final.
 
 ## 3. Métricas de Validação (Capturar por Fase)
 | Métrica | Alvo | Baseline Atual | Medido (Último) | Notas |
 |---------|------|----------------|-----------------|-------|
-| xG total jogo | 2.4–3.2 | Legacy 0.69 (xG sum) | Graph 0.51 | Aproximando alvo inferior |
-| Gols/jogo | 2.4–3.2 | Legacy 2.83 | Graph 2.30 | Próximo range alvo |
-| Chutes/jogo | 18–30 | Legacy 13.0 | Graph 11.6 | Lento aumento |
-| Passes/jogo (logados) | 250–400 | Legacy ~27.7 events | Graph 36.5 events | - |
-| % Sucesso passe | 75–88% | Legacy 74.2% | Graph 74.1% | Quase alvo mínimo |
-| Dribles tentados | 8–25 | 0 | 0 | - |
-| % Sucesso drible | 40–60% | - | - | - |
-| Intercepts/jogo | 35–65 | 9.6 | 12.7 | Baixo vs macro alvo (dif. escala) |
-| Stamina média 90' | 30–55 | ? | ? | Pend. |
+| xG total jogo | 2.4–3.2 | Legacy 0.69 (xG sum) | Graph 0.53 | Abaixo escala alvo (futuro ajuste escalar) |
+| Gols/jogo | 2.4–3.2 | Legacy 2.83 | Graph 2.30–2.46 | Dentro intervalo inferior |
+| Chutes/jogo | 18–30 | Legacy 13.0 | Graph 11.7–11.8 | Precisa ↑ (ações geram menos chutes) |
+| Passes/jogo (logados) | 250–400 | Legacy ~27.7 events | Graph 30–36 events | Escala eventos ≠ passes reais (representação compacta) |
+| % Sucesso passe (ALL) | 75–88% | Legacy 74.2% | Graph 71.9% | Ainda abaixo alvo, tuning pendente |
+| Dribles tentados | 8–25 | 0 | ~3.8 | Abaixo alvo (weights/caps limitando) |
+| % Sucesso drible | 40–60% | - | ~50.5% | Dentro alvo para amostra pequena |
+| Intercepts/jogo | 35–65 | 9.6 | 12.8 | Escala diferente; talvez multiplicar eventos micro no futuro |
+| Stamina média 90' | 30–55 | ? | ? | Nova stamina (fase 6) pendente |
 
-(Preencher baseline via script antes da fase 3.)
+(Últimas medições: batches de 50–200 jogos em modo graph.)
 
 ## 4. Decisões Tomadas
 | Data | Decisão | Motivo |
 |------|---------|--------|
-| - | - | - |
+| 2025-08-09 | Multi-def intercept usa modelo complementar (1-Π(1-p_i)) com caps v2 | Reduz explosão de interceptações iniciais |
+| 2025-08-09 | Long pass intercept mistura 70% modelo longo + 30% base | Controlar risco elevado pós ações fase 4 |
+| 2025-08-09 | Caps por sequência (1 drible, 1 long) | Reduz cascata de ações arriscadas |
+| 2025-08-09 | FIN aplicado apenas em pGoal (não em xg_raw) | Evitar dupla contagem |
+| 2025-08-09 | BOOST adaptativo após ação arriscada | Incentivar consolidação (short pass) |
+| 2025-08-09 | Métricas batch estendidas com habilidades | Visibilidade de impacto tuning futuro |
 
 ## 5. Pendências / Open Questions
-- Ajustar limites de distância (passLong vs lançamento) conforme testes visuais.
-- Definir se FIN modifica xg_raw ou pGoal (decisão final: pGoal apenas?).
-- Representar bloqueio (BLK) como texto + redução pGoal ou apenas flavor?
+- Escala de métricas (eventos vs passes reais) – decidir se expandir log para micro contagem.
+- Aumentar frequência de dribles sem reduzir sucesso de passe global.
+- Aplicar ENG na fadiga e reequilibrar intercept chances pós stamina model.
+- Introduzir habilidades defensivas restantes (MRK/AER/REF/COM) e cabeceio (HDR) em pipeline de chute.
+- Reavaliar alvo de intercepts após definir mapping evento->passes reais.
 
 ## 6. Riscos Atuais
 | Risco | Prob | Impacto | Mitigação |
 |-------|------|---------|-----------|
-| Cresc. complexidade tuning antes de métricas | M | H | Script batch cedo (fase 3) |
-| Latência web micro-ticks | M | M | Batch 4–6 ticks/event |
-| UI sobrecarregada com eventos | L | M | Agrupamento textual |
+| Cresc. complexidade tuning antes de métricas | M | H | Script batch detalhado + testes unit próximos |
+| Latência web micro-ticks | M | M | Manter agregação textual; considerar throttling |
+| Sub-representação de dribles | M | M | Ajustar wDribble dinâmica (ex: penalizar repetição só após falha) |
+| Escala xG baixa | M | M | Recalibrar coeficientes fase 7 |
 
 ## 7. Próxima Ação Imediata
-(Atualizar sempre que concluir algo.)
-- Criar script baseline (≥200 jogos) coletando xG, chutes, passes (contar eventos pass), intercepts, para comparar antes de multi-defensor (fase 3).
+- Adicionar testes unit básicos (VIS reduz intercept ~10%; FIN aumenta pGoal relativo) e iniciar aplicação ENG na fadiga (fase 6 preparatória).
 
 ## 8. Log de Progresso
 | Data | Fase | Ação | Status |
@@ -103,6 +117,11 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-09 | 4 | Introdução ações (drible,long,back,hold,launch) - regressão métricas (passes↓, sucesso↓) | TUNE |
 | 2025-08-09 | 4 | Recalibração inicial ações (redução pesos long/launch, blend intercept long) | TUNE |
 | 2025-08-09 | 4 | Recalibração 2 (short weight + long model soften) resultados 200j | TUNE |
+| 2025-08-09 | 4 | Caps por sequência (1 drible / 1 long) + ajuste pesos adicionais | TUNE |
+| 2025-08-09 | 4 | Adaptive short boost pós ação arriscada | TUNE |
+| 2025-08-09 | 5 | Integração habilidades (VIS, PAS, DRB, FIN, WALL, CAT, CAP) em intercept/drible/pGoal/ratings | TUNE |
+| 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
+| 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 
 ## 9. Referências Cruzadas
 - Proposta completa: `docs/simulation_refactor_proposal.md`
@@ -112,4 +131,4 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 (Manter este arquivo enxuto; detalhes conceituais permanecem na proposta.)
 
 ## Próxima Ação Imediata
-- Ainda longe 75%. Próximo: reduzir drible/long ainda mais e limitar ações não-pass por sequência. Avaliar cap de 1 drible e 1 long por seq antes de chute.
+- Testes unit de habilidades chave + aplicar ENG no decay antes da fase 6 completa.

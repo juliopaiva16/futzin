@@ -282,7 +282,11 @@ List<_SeqEvent> _buildGraphAttackSequence(
     double wShort = EngineParams.graphActionShortBase + (holdBuff ? EngineParams.graphHoldExtraPassWeight : 0.0) + (adaptiveBoost ? EngineParams.graphAdaptiveShortBoost : 0.0);
     double wDribble = 0.0;
     if (usedDribbles < EngineParams.graphActionMaxDribblesPerSeq && nearestDist < EngineParams.graphDribbleMaxDist && nearestDef != null && shortRecs.isNotEmpty) {
-      wDribble = EngineParams.graphActionDribbleBase * (1.0 + (carrier.technique / 150.0));
+      double base = EngineParams.graphActionDribbleBase * (1.0 + (carrier.technique / 150.0));
+      if (carrier.hasAbility('DRB')) {
+        base *= (1.0 + EngineParams.graphAbilityDrbExtraWeight);
+      }
+      wDribble = base;
     }
     double wLong = (usedLong < EngineParams.graphActionMaxLongPerSeq && longRecs.isNotEmpty) ? EngineParams.graphActionLongPassBase : 0.0;
     double wBack = 0.0;
@@ -331,6 +335,9 @@ List<_SeqEvent> _buildGraphAttackSequence(
       usedDribbles++;
       final paceDiff = (carrier.pace - nearestDef.pace).toDouble();
       double pSuccess = EngineParams.graphDribbleSuccessBase + (carrier.technique / 100.0) * EngineParams.graphDribbleAttackSkillScale + (paceDiff / 100.0) * EngineParams.graphDribblePaceScale - (nearestDef.defense / 100.0) * EngineParams.graphDribbleDefSkillScale;
+      if (carrier.hasAbility('DRB')) {
+        pSuccess += EngineParams.graphAbilityDrbSuccessAdd;
+      }
       pSuccess = pSuccess.clamp(EngineParams.graphDribbleSuccessMin, EngineParams.graphDribbleSuccessMax);
       seq.add(_SeqEvent.text(messages.dribble(carrier.name, nearestDef.name)));
       if (rng.nextDouble() < pSuccess) {
@@ -365,10 +372,19 @@ List<_SeqEvent> _buildGraphAttackSequence(
     bool longAttempt = chosen == _GraphAction.longPass;
     double interceptBase = EngineParams.graphInterceptBase + EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) + EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
     if (chosen == _GraphAction.backPass) interceptBase *= EngineParams.graphBackPassInterceptFactor; // safer
-
+    if (carrier.hasAbility('PAS') && chosen != _GraphAction.longPass) {
+      interceptBase *= (1.0 - EngineParams.graphAbilityPasShortRel);
+    }
+    // Compute single-lane component
     final interceptChanceSingle = (interceptBase + EngineParams.graphInterceptDistFactor * (d - 0.15));
     final multiProb = multiDefInterceptProb(carrier, rec);
     double interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    if (carrier.hasAbility('VIS')) {
+      interceptChance *= (1.0 - EngineParams.graphAbilityVisInterceptRel);
+    }
+    if (defAlive.any((df)=>df.hasAbility('WALL'))) {
+      interceptChance *= (1.0 + EngineParams.graphAbilityWallInterceptRel);
+    }
 
     if (longAttempt) {
       // Adjust success for long pass model: treat intercept chance as (1 - successLong)
@@ -422,6 +438,13 @@ List<_SeqEvent> _buildGraphAttackSequence(
   xg = xg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
   double pGoal = (xg * (0.95 - EngineParams.graphGoalGkSaveFactor * gkSave)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  // Ability: FIN increases pGoal relatively, CAT reduces
+  if (carrier.hasAbility('FIN')) {
+    pGoal = (pGoal * (1.0 + EngineParams.graphAbilityFinPGoalRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  }
+  if (defRat.gk != null && defRat.gk!.hasAbility('CAT')) {
+    pGoal = (pGoal * (1.0 - EngineParams.graphAbilityCatSaveRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  }
   if (rng.nextDouble() < pGoal) {
     seq.add(_SeqEvent.goal(messages.goal(atk.name, carrier.name), xg));
     return seq;

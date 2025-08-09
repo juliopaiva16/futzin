@@ -105,13 +105,78 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
   int launchFail = 0;
   bool pendingLaunch = false; // flag to evaluate outcome on next event
 
+  final nameMap = <String, Player>{
+    for (final p in teamA.selected) p.name: p,
+    for (final p in teamB.selected) p.name: p,
+  };
+  // Ability roster counts (once per match)
+  int visPlayers = nameMap.values.where((p)=>p.hasAbility('VIS')).length;
+  int pasPlayers = nameMap.values.where((p)=>p.hasAbility('PAS')).length;
+  int drbPlayers = nameMap.values.where((p)=>p.hasAbility('DRB')).length;
+  int finPlayers = nameMap.values.where((p)=>p.hasAbility('FIN')).length;
+  int wallPlayers = nameMap.values.where((p)=>p.hasAbility('WALL')).length;
+  int catPlayers = nameMap.values.where((p)=>p.hasAbility('CAT')).length;
+  int capPlayers = nameMap.values.where((p)=>p.hasAbility('CAP')).length;
+
+  // Ability event metrics
+  int goalsFin = 0;
+  int passesPasShort = 0;
+  int passesPasLong = 0;
+  int dribAttDrb = 0;
+  int dribSuccDrb = 0;
+  int interceptsWall = 0;
+  int savesCat = 0;
+  int goalsAgainstCat = 0;
+
+  String _extractPassFrom(String txt) {
+    // formats: "A -> B", "A long to B", "A back to B"
+    if (txt.contains('->')) {
+      return txt.split('->').first.trim();
+    }
+    if (txt.contains(' long to ')) {
+      return txt.split(' long to ').first.trim();
+    }
+    if (txt.contains(' back to ')) {
+      return txt.split(' back to ').first.trim();
+    }
+    return '';
+  }
+
   final sub = engine.stream.listen((e) {
-    final txt = e.text.toLowerCase();
+    final txtOrig = e.text;
+    final txt = txtOrig.toLowerCase();
     if (e.kind == MatchEventKind.shot) shots++;
 
-    // Dribble tracking
-    if (txt.contains(' vs ')) dribbleAttempts++;
-    if (txt.contains('dribbles past')) dribbleSuccess++;
+    // Goals (extract scorer for FIN)
+    if (e.kind == MatchEventKind.goal) {
+      final idx = txtOrig.indexOf('(');
+      if (idx != -1) {
+        final end = txtOrig.indexOf(')', idx + 1);
+        if (end != -1) {
+          final scorer = txtOrig.substring(idx + 1, end).trim();
+            final player = nameMap[scorer];
+            if (player != null && player.hasAbility('FIN')) goalsFin++;
+            // goalsAgainstCat: defending side GK has CAT
+            final defending = e.side == 1 ? teamB : teamA;
+            final gk = defending.selected.firstWhere((p)=>p.pos==Position.GK, orElse: ()=>defending.selected.first);
+            if (gk.hasAbility('CAT')) goalsAgainstCat++;
+        }
+      }
+    }
+
+    // Dribble tracking (attribute to DRB ability owner)
+    if (txt.contains(' vs ')) {
+      dribbleAttempts++;
+      final playerName = txtOrig.split(' vs ').first.split("': ").last.trim();
+      final player = nameMap[playerName];
+      if (player != null && player.hasAbility('DRB')) dribAttDrb++;
+    }
+    if (txt.contains('dribbles past')) {
+      dribbleSuccess++;
+      final playerName = txtOrig.split(' dribbles past').first.split("': ").last.trim();
+      final player = nameMap[playerName];
+      if (player != null && player.hasAbility('DRB')) dribSuccDrb++;
+    }
     if (txt.contains('dispossessed')) dribbleFail++;
 
     // Hold tracking
@@ -130,18 +195,50 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
       pendingLaunch = false;
     }
 
-    // Pass classification
+    // Pass classification + PAS ability
     if (txt.contains(' long to ')) {
-      passesLong++; return; // counted as pass
+      passesLong++; 
+      final from = _extractPassFrom(txtOrig.split("': ").last);
+      final player = nameMap[from];
+      if (player != null && player.hasAbility('PAS')) passesPasLong++;
+      return; // counted as pass
     }
     if (txt.contains(' back to ')) {
-      passesBack++; return; // counted as pass
+      passesBack++; 
+      final from = _extractPassFrom(txtOrig.split("': ").last);
+      final player = nameMap[from];
+      if (player != null && player.hasAbility('PAS')) passesPasShort++;
+      return; // counted as pass
     }
-    if (e.text.contains('->')) {
-      passesShort++; return; // short pass
+    if (txtOrig.contains('->')) {
+      passesShort++; 
+      final from = _extractPassFrom(txtOrig.split("': ").last);
+      final player = nameMap[from];
+      if (player != null && player.hasAbility('PAS')) passesPasShort++;
+      return; // short pass
     }
 
-    if (txt.contains('intercept')) intercepts++;
+    // Intercepts + WALL attribution
+    if (txt.contains('intercept')) {
+      intercepts++;
+      // Interceptor name between "Intercepted by " and " (" or end
+      final marker = 'Intercepted by ';
+      final start = txtOrig.indexOf(marker);
+      if (start != -1) {
+        var tail = txtOrig.substring(start + marker.length).trim();
+        final paren = tail.indexOf('(');
+        if (paren != -1) tail = tail.substring(0, paren).trim();
+        final interceptor = nameMap[tail];
+        if (interceptor != null && interceptor.hasAbility('WALL')) interceptsWall++;
+      }
+    }
+
+    // Saves + CAT
+    if (txt == 'saved') {
+      final defending = e.side == 1 ? teamB : teamA;
+      final gk = defending.selected.firstWhere((p)=>p.pos==Position.GK, orElse: ()=>defending.selected.first);
+      if (gk.hasAbility('CAT')) savesCat++;
+    }
   });
   while (engine.isRunning) {
     engine.advanceMinute();
@@ -177,6 +274,21 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     'launchAttempts': launchAttempts,
     'launchSuccess': launchSuccess,
     'launchFail': launchFail,
+    'visPlayers': visPlayers,
+    'pasPlayers': pasPlayers,
+    'drbPlayers': drbPlayers,
+    'finPlayers': finPlayers,
+    'wallPlayers': wallPlayers,
+    'catPlayers': catPlayers,
+    'capPlayers': capPlayers,
+    'goalsFin': goalsFin,
+    'passesPasShort': passesPasShort,
+    'passesPasLong': passesPasLong,
+    'dribAttDrb': dribAttDrb,
+    'dribSuccDrb': dribSuccDrb,
+    'interceptsWall': interceptsWall,
+    'savesCat': savesCat,
+    'goalsAgainstCat': goalsAgainstCat,
   };
 }
 
@@ -192,6 +304,12 @@ Future<void> main(List<String> args) async {
   int totalDribAtt = 0, totalDribSucc = 0, totalDribFail = 0;
   int totalHolds = 0;
   int totalLaunchAtt = 0, totalLaunchSucc = 0, totalLaunchFail = 0;
+  int totalGoalsFin = 0;
+  int totalPassesPasShort = 0, totalPassesPasLong = 0;
+  int totalDrbAttDrb = 0, totalDrbSuccDrb = 0;
+  int totalInterceptsWall = 0;
+  int totalSavesCat = 0, totalGoalsAgainstCat = 0;
+  int totalVisPlayers = 0, totalPasPlayers = 0, totalDrbPlayers = 0, totalFinPlayers = 0, totalWallPlayers = 0, totalCatPlayers = 0, totalCapPlayers = 0;
   for (int i = 0; i < games; i++) {
     final res = await simulateOne(1000 + i, useGraph);
     results.add(res);
@@ -210,6 +328,14 @@ Future<void> main(List<String> args) async {
     totalLaunchAtt += res['launchAttempts'] as int;
     totalLaunchSucc += res['launchSuccess'] as int;
     totalLaunchFail += res['launchFail'] as int;
+    totalGoalsFin += res['goalsFin'] as int;
+    totalPassesPasShort += res['passesPasShort'] as int;
+    totalPassesPasLong += res['passesPasLong'] as int;
+    totalDrbAttDrb += res['dribAttDrb'] as int;
+    totalDrbSuccDrb += res['dribSuccDrb'] as int;
+    totalInterceptsWall += res['interceptsWall'] as int;
+    totalSavesCat += res['savesCat'] as int;
+    totalGoalsAgainstCat += res['goalsAgainstCat'] as int;
   }
   double avg(String k) => results.map((m) => (m[k] as num).toDouble()).fold(0.0, (a, b) => a + b) / results.length;
   final avgXg = avg('xgA') + avg('xgB');
@@ -218,6 +344,18 @@ Future<void> main(List<String> args) async {
   final passSuccessLegacy = totalLegacyAttempts == 0 ? 0.0 : totalLegacyPass / totalLegacyAttempts; // previous method
   final dribbleSuccRate = totalDribAtt == 0 ? 0.0 : totalDribSucc / totalDribAtt;
   final launchRetainRate = totalLaunchAtt == 0 ? 0.0 : totalLaunchSucc / totalLaunchAtt;
+  final avgVisPlayers = totalVisPlayers / games;
+  final avgPasPlayers = totalPasPlayers / games;
+  final avgDrbPlayers = totalDrbPlayers / games;
+  final avgFinPlayers = totalFinPlayers / games;
+  final avgWallPlayers = totalWallPlayers / games;
+  final avgCatPlayers = totalCatPlayers / games;
+  final avgCapPlayers = totalCapPlayers / games;
+  final drbAbilitySuccRate = totalDrbAttDrb == 0 ? 0.0 : totalDrbSuccDrb / totalDrbAttDrb;
+  final pasShareShort = totalAllPass == 0 ? 0.0 : totalPassesPasShort / totalAllPass;
+  final pasShareLong = totalLong == 0 ? 0.0 : totalPassesPasLong / totalLong;
+  final wallInterceptShare = totalIntercepts == 0 ? 0.0 : totalInterceptsWall / totalIntercepts;
+  final catSaveRate = (totalSavesCat + totalGoalsAgainstCat) == 0 ? 0.0 : totalSavesCat / (totalSavesCat + totalGoalsAgainstCat);
   print('Games: $games  Mode: ${useGraph ? 'GRAPH' : 'LEGACY'}');
   print('Avg Goals: ${avgGoals.toStringAsFixed(2)}  Avg xG: ${avgXg.toStringAsFixed(2)}');
   print('Avg Shots: ${avg('shots').toStringAsFixed(1)}');
@@ -226,4 +364,9 @@ Future<void> main(List<String> args) async {
   print('Pass Success (LEGACY short only): ${(passSuccessLegacy * 100).toStringAsFixed(1)}%  (passes=$totalLegacyPass, attempts=$totalLegacyAttempts)');
   print('Dribbles: attempts=$totalDribAtt success=$totalDribSucc fail=$totalDribFail  SuccessRate=${(dribbleSuccRate*100).toStringAsFixed(1)}%');
   print('Holds: $totalHolds  Launches: $totalLaunchAtt retain=$totalLaunchSucc fail=$totalLaunchFail  RetainRate=${(launchRetainRate*100).toStringAsFixed(1)}%');
+  print('Ability Rosters avg (VIS/PAS/DRB/FIN/WALL/CAT/CAP): ${avgVisPlayers.toStringAsFixed(1)}/${avgPasPlayers.toStringAsFixed(1)}/${avgDrbPlayers.toStringAsFixed(1)}/${avgFinPlayers.toStringAsFixed(1)}/${avgWallPlayers.toStringAsFixed(1)}/${avgCatPlayers.toStringAsFixed(1)}/${avgCapPlayers.toStringAsFixed(1)}');
+  print('FIN goals: $totalGoalsFin  CAT saves: $totalSavesCat (saveRate=${(catSaveRate*100).toStringAsFixed(1)}%)');
+  print('DRB ability: attempts=$totalDrbAttDrb success=$totalDrbSuccDrb rate=${(drbAbilitySuccRate*100).toStringAsFixed(1)}%');
+  print('PAS passes: short=$totalPassesPasShort (${(pasShareShort*100).toStringAsFixed(1)}% of all), long=$totalPassesPasLong (${(pasShareLong*100).toStringAsFixed(1)}% of long)');
+  print('WALL intercept share: ${(wallInterceptShare*100).toStringAsFixed(1)}%  (wallIntercepts=$totalInterceptsWall of $totalIntercepts)');
 }
