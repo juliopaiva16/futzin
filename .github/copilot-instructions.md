@@ -57,3 +57,81 @@ This repo is a Flutter (Dart) football match simulator. The core loop simulates 
 - Painters: `lib/presentation/widgets/{pitch_widget,momentum_chart}.dart`
 
 Keep changes small and run `flutter analyze` after edits. If adding UI text, update both ARB files.
+
+## Graph Engine Refactor (2025)
+A nova engine baseada em grafo será desenvolvida incrementalmente em paralelo à atual (`match_engine.dart`). Consulte:
+- Proposta: `docs/simulation_refactor_proposal.md`
+- Progresso: `docs/simulation_refactor_progress.md`
+- Habilidades & Roles: `docs/abilities_and_roles.md`
+
+### Objetivo resumido
+Migrar de sequência sintética de eventos para micro-decisions dirigidas por um grafo (jogadores = nós, passes = arestas), preservando interface de eventos (`MatchEvent`).
+
+### Fases (marcar no arquivo de progresso ao concluir)
+1. Role enum + coordenadas de jogadores (nenhuma mudança lógica externa).
+2. Micro motor simples (passes curtos + chute) opcional via flag experimental.
+3. Arestas ponderadas + interceptação multi-defensor.
+4. Ações adicionais (drible, passe longo, recuar, manter, lançamento) + softmax.
+5. Habilidades integradas (passes, drible, finalização, defesa).
+6. Novo modelo de stamina & recalibração ratings.
+7. Tuning momentum/xG para manter ranges.
+8. Flag e UI toggle (Experimental Graph Engine).
+9. Remoção engine antiga após validação.
+
+### Orientações de Implementação
+- Criar novo módulo `lib/domain/graph_engine.dart` (não modificar engine antiga até fase 5+ estar estável).
+- Introduzir `Role` e campo `role` no `Player` com backward compat no JSON (atribuir default baseado em macro posição se ausente).
+- Centralizar parâmetros em classe `EngineParams` (um arquivo dedicado ex: `lib/domain/engine_params.dart`).
+- Cada alteração estrutural deve atualizar `docs/simulation_refactor_progress.md` (status + data).
+- Manter clamps estritos (xg, pGoal, stamina) conforme proposta para evitar regressões estatísticas.
+- Habilidades (abilities) existentes + novas: mapear códigos → efeitos em fases (arestas, scoring, resolução). Evitar aplicar o mesmo buff duas vezes (ex: FIN só em pGoal pós-save, não em xg_raw se escolhido assim no progresso).
+- Sempre rodar `flutter analyze` e adicionar testes unitários para: seleção de ação monotônica, intercept multi-defensor, efeitos de habilidades (VIS reduz intercept ~10% relativo, FIN aumenta pGoal dentro do cap, ENG stamina retention).
+- Evitar quedas de performance: batch micro-ticks em eventos logados; não recalcular todas as arestas a cada tick se não houve movimento relevante (usar throttle ou dirty flags de posição).
+- UI: manter compat com `MatchEvent`; novos campos (ex: coordenadas chute) podem ser adicionados futuramente mas devem ficar opcionais.
+
+### Testes & Métricas
+Durante tuning, produzir batch de simulações (≥200 jogos) para comparar: xG total (meta 2.4–3.2), % passe (75–88%), dribles (8–25), intercepts (35–65). Ajustar parâmetros em bloco único (EngineParams) para facilitar iteração.
+
+### Segurança / Retrocompat
+- Guardar versão de estado (ex: `futsim_state_version: 2`). Se ausente, assumir engine antiga e atribuir roles padrão.
+- Não quebrar persistência de `futsim_state_v1` até migração final; apenas estender.
+
+### Checklist rápido por PR
+1. Atualizou progresso? (docs/simulation_refactor_progress.md)
+2. Adicionou/ajustou testes? (`test/`)
+3. Rodou `flutter analyze` sem warnings novos?
+4. Respeitou clamps e não duplicou buffs de habilidades?
+5. Código isolado por feature flag se fase < 8?
+
+## MCP Tooling & Agent Behavior (Meta)
+Estas orientações complementam o fluxo existente para garantir uso consistente das ferramentas MCP disponíveis.
+
+### Princípios
+- Sempre que uma resposta exigir: (a) raciocínio multi‑etapas não trivial, (b) planejamento de implementação, (c) decomposição de requisitos ambíguos → invocar o mecanismo de pensamento sequencial (`mcp_sequentialthinking`).
+- Antes de assumir contexto não confirmado do repositório, preferir busca/leituras: usar buscas semânticas ou greps (ferramentas padrão) e, para conhecimento externo, extensões MCP relevantes.
+- Após decisões de arquitetura, criação/alteração de entidades, parâmetros, ou conclusões de análises significativas → persistir resumo na memória usando os endpoints `mcp_memory_*` (create_entities / add_observations / create_relations). Garantir que observações sejam curtas, factuais e versionadas se necessário.
+
+### Uso das Ferramentas MCP
+- Context / Documentação Externa: se precisar de documentação de libs, resolver ID com `mcp_context7_resolve-library-id` e depois `mcp_context7_get-library-docs` focando tópico específico.
+- Repositórios Externos (análise de design): usar deepwiki (`mcp_deepwiki_*`) para perguntas estruturadas em vez de copiar código.
+- Navegação / Interação Web (prototipagem, verificação visual): usar playwright (`mcp_playwright_browser_*`). Encerrar abas/sessões ao final para evitar resíduos.
+- Memória de Projeto: cada feature concluída ou decisão chave → `mcp_memory_add_observations`; relações entre conceitos (ex: PlayerNode -> Role influences) → `mcp_memory_create_relations`.
+- Revisões: atualizar ou remover observações obsoletas com `mcp_memory_delete_observations` / `mcp_memory_delete_entities` para manter memória limpa.
+
+### Sequência Recomendada de Resposta
+1. (Opcional) Pensamento inicial curto → chamar sequential thinking para expandir plano.
+2. Reunir contexto faltante (buscas ou docs) antes de editar.
+3. Aplicar mudanças mínimas (atomic commits) conforme instruções principais do arquivo.
+4. Atualizar arquivos de progresso / docs quando impactados.
+5. Persistir snapshot conciso das decisões na memória MCP.
+6. Responder ao usuário de forma curta, confirmando próximos passos.
+
+### Boas Práticas
+- Não duplicar persistência: só adicionar observações novas ou mutações relevantes.
+- Evitar armazenar trechos extensos de código na memória; preferir descrições.
+- Marcar cada observação com contexto temporal (ex: `2025-08-09: Phase1 PlayerNode added`).
+- Reavaliar necessidade de novo bloco sequential thinking antes de grandes refactors subsequentes.
+
+### Limites
+- Se uma ferramenta não retornar dados esperados, relatar e sugerir alternativa antes de prosseguir.
+- Manter aderência às políticas (sem conteúdo sensível / licenças infringidas) mesmo durante coleta via MCP.

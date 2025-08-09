@@ -9,6 +9,7 @@ import '../../core/localization/app_localizations.dart';
 import '../../domain/entities.dart';
 import '../../domain/match_engine.dart';
 import '../../domain/messages.dart';
+import '../../domain/graph_engine.dart';
 import '../widgets/pitch_widget.dart';
 import '../widgets/team_config_widget.dart';
 import '../widgets/momentum_chart.dart';
@@ -30,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   bool simRunning = false;
   bool loaded = false;
   double _speed = 1.0;
+  bool _expGraph = false; // experimental graph engine flag (fase 1 placeholder)
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadState() async {
     final sp = await SharedPreferences.getInstance();
+    _expGraph = sp.getBool('futsim_exp_graph_engine') ?? false;
     final data = sp.getString('futsim_state_v1');
     if (data != null) {
       try {
@@ -91,6 +94,8 @@ class _HomePageState extends State<HomePage> {
     );
     teamA.autoPick();
     teamB.autoPick();
+    // Assign initial coordinates (graph engine phase 1)
+    GraphLayout.assignMatchCoordinates(teamA, teamB);
     loaded = true;
     setState(() {});
   }
@@ -99,6 +104,7 @@ class _HomePageState extends State<HomePage> {
     final sp = await SharedPreferences.getInstance();
     final j = {'teamA': teamA.toJson(), 'teamB': teamB.toJson()};
     await sp.setString('futsim_state_v1', jsonEncode(j));
+    await sp.setBool('futsim_exp_graph_engine', _expGraph);
   }
 
   List<Player> _generateSquad(String tag) {
@@ -228,13 +234,18 @@ class _HomePageState extends State<HomePage> {
       _showSnack(l10n.invalidLineups); // still invalid -> abort
       return;
     }
-    await _saveState();
+    // Recompute coordinates before kickoff (reflect latest tactics/formation changes)
+    GraphLayout.assignMatchCoordinates(teamA, teamB);
     setState(() {
       events.clear();
       engine?.stop();
-      engine = MatchEngine(teamA, teamB, messages: _FlutterMatchMessages(l10n));
+      // For now graph engine not implemented: still use legacy engine.
+      engine = MatchEngine(teamA, teamB, messages: _FlutterMatchMessages(l10n), useGraph: _expGraph);
       simRunning = true;
     });
+    if (_expGraph) {
+      _showSnack('Experimental graph engine flag ON (not yet active).');
+    }
     engine!.stream.listen((e) {
       setState(() {
         events.add(e);
@@ -299,112 +310,120 @@ class _HomePageState extends State<HomePage> {
     final possPctA = (100.0 * possA / possTotal);
     final possPctB = 100.0 - possPctA;
 
-  final appBar = AppBar(
-          title: Text(l10n.appTitle),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.ios_share),
-              onPressed: _shareLog,
-              tooltip: l10n.exportLog,
-            ),
-            PopupMenuButton<double>(
-              tooltip: 'Speed ${_speed}x',
-              icon: const Icon(Icons.speed),
-              onSelected: (v) {
-                setState(() => _speed = v);
-                engine?.setSpeed(v);
-              },
-              itemBuilder: (ctx) => const [
-                PopupMenuItem(value: 1.0, child: Text('1x')),
-                PopupMenuItem(value: 1.5, child: Text('1.5x')),
-                PopupMenuItem(value: 2.0, child: Text('2x')),
-                PopupMenuItem(value: 4.0, child: Text('4x')),
-                PopupMenuItem(value: 10.0, child: Text('10x')),
-              ],
-            ),
-            if (!simRunning)
-              IconButton(
-                icon: const Icon(Icons.play_arrow),
-                onPressed: _startMatch,
-                tooltip: l10n.startMatch,
-              ),
-            if (simRunning)
-              IconButton(
-                icon: const Icon(Icons.stop),
-                onPressed: _stopMatch,
-                tooltip: l10n.stop,
-              ),
+    final appBar = AppBar(
+      title: Text(l10n.appTitle),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.science_outlined),
+            tooltip: 'Graph Engine: ${_expGraph ? 'ON' : 'OFF'}',
+            onPressed: simRunning
+                ? null
+                : () async {
+                    setState(() => _expGraph = !_expGraph);
+                    await _saveState();
+                  },
+        ),
+        IconButton(
+          icon: const Icon(Icons.ios_share),
+          onPressed: _shareLog,
+          tooltip: l10n.exportLog,
+        ),
+        PopupMenuButton<double>(
+          tooltip: 'Speed ${_speed}x',
+          icon: const Icon(Icons.speed),
+          onSelected: (v) {
+            setState(() => _speed = v);
+            engine?.setSpeed(v);
+          },
+          itemBuilder: (ctx) => const [
+            PopupMenuItem(value: 1.0, child: Text('1x')),
+            PopupMenuItem(value: 1.5, child: Text('1.5x')),
+            PopupMenuItem(value: 2.0, child: Text('2x')),
+            PopupMenuItem(value: 4.0, child: Text('4x')),
+            PopupMenuItem(value: 10.0, child: Text('10x')),
           ],
+        ),
+        if (!simRunning)
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            onPressed: _startMatch,
+            tooltip: l10n.startMatch,
+          ),
+        if (simRunning)
+          IconButton(
+            icon: const Icon(Icons.stop),
+            onPressed: _stopMatch,
+            tooltip: l10n.stop,
+          ),
+      ],
     );
 
-  Widget scoreboard() => Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${teamA.name} ${last?.scoreA ?? 0} x ${last?.scoreB ?? 0} ${teamB.name}',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      if (events.isNotEmpty)
-                        Text(
-                          l10n.minuteShort((events.last.minute).toString()),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${l10n.possessionLabel}: ${possPctA.toStringAsFixed(0)}% x ${possPctB.toStringAsFixed(0)}%   '
-                    '${l10n.xgLabel}: ${(last?.xgA ?? 0).toStringAsFixed(2)} x ${(last?.xgB ?? 0).toStringAsFixed(2)}',
-                  ),
-                ],
+    Widget scoreboard() => Container(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${teamA.name} ${last?.scoreA ?? 0} x ${last?.scoreB ?? 0} ${teamB.name}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
-      );
+              if (events.isNotEmpty)
+                Text(
+                  l10n.minuteShort((events.last.minute).toString()),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${l10n.possessionLabel}: ${possPctA.toStringAsFixed(0)}% x ${possPctB.toStringAsFixed(0)}%   '
+            '${l10n.xgLabel}: ${(last?.xgA ?? 0).toStringAsFixed(2)} x ${(last?.xgB ?? 0).toStringAsFixed(2)}',
+          ),
+        ],
+      ),
+    );
 
     Widget pitchAndMomentum() => Column(
-              children: [
-                SizedBox(
-                  height: 220,
-                  child: PitchWidget(teamA: teamA, teamB: teamB),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: MomentumChart(
-                    events: events,
-                    maxMinutes: 90,
-                    height: 120,
-                  ),
-                ),
-              ],
-            );
+      children: [
+        SizedBox(
+          height: 220,
+          child: PitchWidget(teamA: teamA, teamB: teamB),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: MomentumChart(
+            events: events,
+            maxMinutes: 90,
+            height: 120,
+          ),
+        ),
+      ],
+    );
 
     Widget eventsLog() => ListView.builder(
-              controller: _scroll,
-              padding: const EdgeInsets.all(12),
-              itemCount: events.length,
-              itemBuilder: (ctx, i) {
-                final e = events[i];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Text(e.text),
-                );
-              },
-            );
+      controller: _scroll,
+      padding: const EdgeInsets.all(12),
+      itemCount: events.length,
+      itemBuilder: (ctx, i) {
+        final e = events[i];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Text(e.text),
+        );
+      },
+    );
     return Scaffold(
       appBar: appBar,
       body: ListView(
         padding: const EdgeInsets.only(bottom: 12),
         children: [
           scoreboard(),
-          // Pitch on top
           pitchAndMomentum(),
-          // Team config below pitch
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: TeamConfigWidget(

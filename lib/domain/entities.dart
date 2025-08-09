@@ -33,6 +33,76 @@ String positionShort(Position p) {
   }
 }
 
+enum Role {
+  GK_STD,
+  GK_STS,
+  GK_SWSR,
+  GK_DSTB,
+  GK_CMD,
+  DEF_CB,
+  DEF_STP,
+  DEF_LIB,
+  DEF_FBW,
+  DEF_FBD,
+  MID_ANC,
+  MID_B2B,
+  MID_CM,
+  MID_AP,
+  MID_AM,
+  MID_WM,
+  MID_WB,
+  FWD_ST,
+  FWD_F9,
+  FWD_WG,
+  FWD_IW,
+  FWD_SS,
+  FWD_PC,
+}
+
+extension RoleCode on Role {
+  String get code => switch (this) {
+    Role.GK_STD => 'STD',
+    Role.GK_STS => 'STS',
+    Role.GK_SWSR => 'SWSR',
+    Role.GK_DSTB => 'DSTB',
+    Role.GK_CMD => 'CMD',
+    Role.DEF_CB => 'CB',
+    Role.DEF_STP => 'STP',
+    Role.DEF_LIB => 'LIB',
+    Role.DEF_FBW => 'FBW',
+    Role.DEF_FBD => 'FBD',
+    Role.MID_ANC => 'ANC',
+    Role.MID_B2B => 'B2B',
+    Role.MID_CM => 'CM',
+    Role.MID_AP => 'AP',
+    Role.MID_AM => 'AM',
+    Role.MID_WM => 'WM',
+    Role.MID_WB => 'WB',
+    Role.FWD_ST => 'ST',
+    Role.FWD_F9 => 'F9',
+    Role.FWD_WG => 'WG',
+    Role.FWD_IW => 'IW',
+    Role.FWD_SS => 'SS',
+    Role.FWD_PC => 'PC',
+  };
+  bool get isGK => name.startsWith('GK_');
+}
+
+Role _defaultRoleFor(Position p) => switch (p) {
+  Position.GK => Role.GK_STD,
+  Position.DEF => Role.DEF_CB,
+  Position.MID => Role.MID_CM,
+  Position.FWD => Role.FWD_ST,
+};
+
+Role? roleFromCode(String? c, Position macro) {
+  if (c == null) return _defaultRoleFor(macro);
+  for (final r in Role.values) {
+    if (r.code == c) return r;
+  }
+  return _defaultRoleFor(macro);
+}
+
 class Player {
   final String id;
   String name;
@@ -51,6 +121,9 @@ class Player {
   int yellowCards;
   bool injured;
   bool sentOff;
+  Role role; // micro role (phase 1: default only)
+  double? x; // 0..1 (campo normalizado) - atribuído pela futura graph engine
+  double? y; // 0..1
 
   Player({
     required this.id,
@@ -68,8 +141,12 @@ class Player {
     this.yellowCards = 0,
     this.injured = false,
     this.sentOff = false,
+    Role? role,
+    this.x,
+    this.y,
   })  : abilityCodes = List.unmodifiable((abilityCodes ?? []).take(3)),
-        currentStamina = currentStamina ?? stamina.toDouble();
+        currentStamina = currentStamina ?? stamina.toDouble(),
+        role = role ?? _defaultRoleFor(pos);
 
   Player copy() => Player(
     id: id,
@@ -87,6 +164,9 @@ class Player {
     yellowCards: yellowCards,
     injured: injured,
     sentOff: sentOff,
+    role: role,
+    x: x,
+    y: y,
   );
 
   Map<String, dynamic> toJson() => {
@@ -96,11 +176,14 @@ class Player {
     'attack': attack,
     'defense': defense,
     'stamina': stamina,
-  'pace': pace,
-  'passing': passing,
-  'technique': technique,
-  'strength': strength,
+    'pace': pace,
+    'passing': passing,
+    'technique': technique,
+    'strength': strength,
     'abilities': abilityCodes,
+    'role': role.code,
+    if (x != null) 'x': x,
+    if (y != null) 'y': y,
   };
 
   static Player fromJson(Map<String, dynamic> j) => Player(
@@ -115,6 +198,9 @@ class Player {
   technique: (j['technique'] ?? 60),
   strength: (j['strength'] ?? 60),
     abilityCodes: (j['abilities'] as List?)?.map((e) => e.toString()).toList(),
+    role: roleFromCode(j['role'] as String?, Position.values[j['pos']]),
+    x: (j['x'] as num?)?.toDouble(),
+    y: (j['y'] as num?)?.toDouble(),
   );
 }
 
