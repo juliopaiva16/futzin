@@ -11,14 +11,14 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 ## 1. Fases & Checklist
 | Fase | Descrição | Itens Principais | Status | Data Início | Data Fim |
 |------|-----------|------------------|--------|-------------|----------|
-| 1 | Infra posições & Role enum (sem mudar lógica) | Role enum, coord alloc, serialização | DOING | 2025-08-09 | - |
-| 2 | Micro motor PassCurto + Chute simples | PlayerNode adapter, edge builder básico, substitui _buildAttackSequence opcional | DOING | 2025-08-09 | - |
+| 1 | Infra posições & Role enum (sem mudar lógica) | Role enum, coord alloc, serialização | DONE | 2025-08-09 | 2025-08-09 |
+| 2 | Micro motor PassCurto + Chute simples | PlayerNode adapter, edge builder básico, substitui _buildAttackSequence opcional | DONE | 2025-08-09 | 2025-08-09 |
 | 3 | Arestas ponderadas + intercept multi-defensor | Peso aresta, pressão, intercept calc | TODO | - | - |
 | 4 | Ações adicionais (PassLongo, Drible, Recuar, Manter, Lançamento) | Scoring tabela, softmax decisão | TODO | - | - |
 | 5 | Habilidades (passes + drible + finalização + defesa) | Aplicar mapa de efeitos por fase | TODO | - | - |
 | 6 | Stamina nova + recalibração ratings | Decay tick, attrEff, testes ENG | TODO | - | - |
 | 7 | Momentum/xG tuning | Ajustar ranges, comparar baseline | TODO | - | - |
-| 8 | Flag modo experimental + UI toggles | Persistência flag, fallback engine antiga | DOING | 2025-08-09 | - |
+| 8 | Flag modo experimental + UI toggles | Persistência flag, fallback engine antiga | DONE | 2025-08-09 | 2025-08-09 |
 | 9 | Limpeza e remoção engine antiga | Deprecar código legado | TODO | - | - |
 
 ## 2. Tarefas Detalhadas (Backlog)
@@ -49,14 +49,15 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 ## 3. Métricas de Validação (Capturar por Fase)
 | Métrica | Alvo | Baseline Atual | Medido (Último) | Notas |
 |---------|------|----------------|-----------------|-------|
-| xG total jogo | 2.4–3.2 | ? | - | Ajustar FIN/HDR caps.
-| Chutes/jogo | 18–30 | ? | - | Depende de scoring ações.
-| Passes/jogo (logados) | 250–400 | ~? | - | Agregar micro passes.
-| % Sucesso passe | 75–88% | ? | - | Ajustar interceptBase.
-| Dribles tentados | 8–25 | ? | - | Evitar spam.
-| % Sucesso drible | 40–60% | ? | - | Controle DRB & pressão.
-| Intercepts/jogo | 35–65 | ? | - | Depende edge densidade.
-| Stamina média 90' | 30–55 | ~? | - | ENG diferencial ~15pp.
+| xG total jogo | 2.4–3.2 | Legacy 0.69 (xG sum) | Graph 0.51 | Under-report (legacy engine xG low vs goals) |
+| Gols/jogo | 2.4–3.2 | Legacy 2.83 | Graph 2.33 | OK range; graph levemente baixo |
+| Chutes/jogo | 18–30 | Legacy 13.0 | Graph 11.6 | Abaixo alvo (sequências curtas) |
+| Passes/jogo (logados) | 250–400 | Legacy ~27.7 events | Graph 36.8 events | Micro vs macro; escalar depois |
+| % Sucesso passe | 75–88% | Legacy 74.2% | Graph 74.6% | Levemente abaixo alvo mínimo; tuning intercept fase 3 |
+| Dribles tentados | 8–25 | 0 | 0 | Não implementado ainda |
+| % Sucesso drible | 40–60% | - | - | Fase futura |
+| Intercepts/jogo | 35–65 | 9.6 | 12.5 | Escala macro baixa; micro ainda básica |
+| Stamina média 90' | 30–55 | ? | ? | Medir depois nova stamina |
 
 (Preencher baseline via script antes da fase 3.)
 
@@ -79,18 +80,19 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 
 ## 7. Próxima Ação Imediata
 (Atualizar sempre que concluir algo.)
-- Preparar baseline métricas (script simples) antes de intercept multi-defensor (fase 3).
+- Criar script baseline (≥200 jogos) coletando xG, chutes, passes (contar eventos pass), intercepts, para comparar antes de multi-defensor (fase 3).
 
 ## 8. Log de Progresso
 | Data | Fase | Ação | Status |
 |------|------|------|--------|
-| 2025-08-09 | 1 | Fase 1 iniciada (marcar DOING, preparar enum Role) | DOING |
-| 2025-08-09 | 1 | Enum Role criado e campo role em Player incluído (serialização) | DOING |
-| 2025-08-09 | 1 | EngineParams criado + graph_engine.dart stub + layout coords | DOING |
-| 2025-08-09 | 1 | Layout integrado na HomePage (pré-kickoff) | DOING |
-| 2025-08-09 | 1 | PlayerNode adapter adicionado (não usado ainda) | DOING |
-| 2025-08-09 | 8 | Flag experimental persistida + toggle UI | DOING |
-| 2025-08-09 | 2 | Edge builder curto + seleção de passes + chute simples (graph seq) | DOING |
+| 2025-08-09 | 1 | Fase 1 iniciada (marcar DOING, preparar enum Role) | DONE |
+| 2025-08-09 | 1 | Enum Role criado e campo role em Player incluído (serialização) | DONE |
+| 2025-08-09 | 1 | EngineParams criado + graph_engine.dart stub + layout coords | DONE |
+| 2025-08-09 | 1 | Layout integrado na HomePage (pré-kickoff) | DONE |
+| 2025-08-09 | 1 | PlayerNode adapter adicionado (não usado ainda) | DONE |
+| 2025-08-09 | 8 | Flag experimental persistida + toggle UI | DONE |
+| 2025-08-09 | 2 | Edge builder curto + seleção de passes + chute simples (graph seq) | DONE |
+| 2025-08-09 | Base | Baseline 200j legacy & graph coletado | DONE |
 
 ## 9. Referências Cruzadas
 - Proposta completa: `docs/simulation_refactor_proposal.md`

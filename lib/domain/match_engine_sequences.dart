@@ -47,17 +47,16 @@ List<_SeqEvent> _buildAttackSequence(
 
   var carrier = pickAttacker();
   seq.add(_SeqEvent.text(messages.findsSpace(carrier.name)));
-  final closeChance =
-      0.10 + 0.25 * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
+  final closeChance = EngineParams.legacyCloseBase + EngineParams.legacyCloseDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
   if (rng.nextDouble() < closeChance) {
     seq.add(_SeqEvent.text(messages.defenseCloses(def.name)));
     return seq;
   }
-  final passBase = 1 + ((atk.tactics.tempo + atk.tactics.width) * 1.2).round();
-  final passCount = max(0, min(2, passBase + rng.nextInt(2) - 1));
+  final passBase = 1 + ((atk.tactics.tempo + atk.tactics.width) * EngineParams.legacyPassTempoWidthFactor).round();
+  final passCount = max(0, min(EngineParams.legacyPassMax, passBase + rng.nextInt(EngineParams.legacyPassExtraRand) - 1));
   for (int i = 0; i < passCount; i++) {
-    final interceptChance = 0.14 +
-        0.20 * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
+    final interceptChance = EngineParams.legacyInterceptBase +
+        EngineParams.legacyInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
     if (rng.nextDouble() < interceptChance) {
       final interceptor = pickDefender();
       seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
@@ -66,23 +65,23 @@ List<_SeqEvent> _buildAttackSequence(
     final receiver = pickAttacker(exclude: carrier);
     seq.add(_SeqEvent.text(messages.pass(carrier.name, receiver.name)));
     carrier = receiver;
-    final foulChance = 0.06 + 0.04 * def.tactics.pressing;
+    final foulChance = EngineParams.legacyFoulBase + EngineParams.legacyFoulPressingFactor * def.tactics.pressing;
     if (rng.nextDouble() < foulChance) {
       final offender = pickDefender();
       seq.add(_SeqEvent.text(messages.lateFoul(def.name)));
-      final redProb = 0.04 + 0.03 * atk.tactics.tempo;
+      final redProb = EngineParams.legacyRedBase + EngineParams.legacyRedTempoFactor * atk.tactics.tempo;
       if (rng.nextDouble() < redProb) {
         seq.add(_SeqEvent.card(messages.foulRed(offender.name, def.name), offender,
             _CardType.red));
       } else {
         seq.add(_SeqEvent.card(messages.foulYellow(offender.name, def.name),
             offender, _CardType.yellow));
-        if (offender.yellowCards == 1 && rng.nextDouble() < 0.05) {
+        if (offender.yellowCards == 1 && rng.nextDouble() < EngineParams.legacySecondYellowProb) {
           seq.add(_SeqEvent.card(messages.foulYellow(offender.name, def.name),
               offender, _CardType.yellow));
         }
       }
-      if (rng.nextDouble() < 0.12) {
+      if (rng.nextDouble() < EngineParams.legacyInjuryAfterFoulProb) {
         seq.add(_SeqEvent.text(messages.injuryAfterChallenge(carrier.name)));
         seq.add(_SeqEvent.injury(
             messages.injuryOutside(carrier.name, atk.name), carrier));
@@ -92,20 +91,20 @@ List<_SeqEvent> _buildAttackSequence(
   }
   seq.add(_SeqEvent.text(messages.shoots(carrier.name)));
   final quality = atkRat.attackAdj / (atkRat.attackAdj + defRat.defenseAdj + 1e-6);
-  double xg = 0.05 + 0.45 * quality + (rng.nextDouble() * 0.10 - 0.05);
-  xg = xg.clamp(0.03, 0.65);
+  double xg = EngineParams.legacyXgBase + EngineParams.legacyXgAttackFactor * quality + (rng.nextDouble() * EngineParams.legacyXgRandomRange - EngineParams.legacyXgRandomRange / 2);
+  xg = xg.clamp(EngineParams.legacyXgMin, EngineParams.legacyXgMax);
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
-  double pGoal = (xg * (0.95 - 0.35 * gkSave)).clamp(0.02, 0.80);
+  double pGoal = (xg * (0.95 - EngineParams.legacyGoalGkSaveFactor * gkSave)).clamp(EngineParams.legacyPGoalMin, EngineParams.legacyPGoalMax);
   if (rng.nextDouble() < pGoal) {
     seq.add(_SeqEvent.goal(messages.goal(atk.name, carrier.name), xg));
     return seq;
   }
   seq.add(_SeqEvent.shot(xg, 'Shot'));
-  final pSave = 0.55 - 0.20 * quality + 0.25 * gkSave;
+  final pSave = EngineParams.legacyShotSaveBase - EngineParams.legacyShotSaveQualityFactor * quality + EngineParams.legacyShotSaveGkFactor * gkSave;
   if (rng.nextDouble() < pSave) {
     seq.add(_SeqEvent.text(messages.savedByKeeper()));
   } else {
-    if (rng.nextDouble() < 0.20) {
+    if (rng.nextDouble() < EngineParams.legacyDeflectOutProb) {
       seq.add(_SeqEvent.text(messages.deflectedOut()));
     } else {
       seq.add(_SeqEvent.text(messages.offTarget()));
@@ -159,7 +158,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
     for (final p in atkAlive) {
       if (p == from) continue;
       final d = dist(from, p);
-      if (d <= 0.55) list.add(p);
+      if (d <= EngineParams.passLongMaxDist) list.add(p);
     }
     return list.isEmpty ? atkAlive.where((p) => p != from).toList() : list;
   }
@@ -189,23 +188,51 @@ List<_SeqEvent> _buildGraphAttackSequence(
     return pool[rng.nextInt(pool.length)];
   }
 
+  // Helper: multi-defender interception probability based on defenders near pass lane
+  double multiDefInterceptProb(Player from, Player to) {
+    // Represent pass as segment; approximate distance of defender to segment using projection
+    double segDist(Player d) {
+      final fx = from.x ?? 0.5, fy = from.y ?? 0.5;
+      final tx = to.x ?? 0.5, ty = to.y ?? 0.5;
+      final dx = tx - fx; final dy = ty - fy;
+      if (dx.abs() < 1e-6 && dy.abs() < 1e-6) return 999; // degenerate
+      final pdx = (d.x ?? 0.5) - fx; final pdy = (d.y ?? 0.5) - fy;
+      final t = ((pdx * dx) + (pdy * dy)) / (dx*dx + dy*dy);
+      final clamped = t.clamp(0.0, 1.0);
+      final cx = fx + dx * clamped; final cy = fy + dy * clamped;
+      final ddx = (d.x ?? 0.5) - cx; final ddy = (d.y ?? 0.5) - cy;
+      return sqrt(ddx*ddx + ddy*ddy);
+    }
+    final candidates = defAlive.where((d) => !d.sentOff && !d.injured).toList();
+    double agg = 0.0;
+    for (final d in candidates) {
+      final distLane = segDist(d);
+      if (distLane > EngineParams.graphMultiInterceptRadius) continue;
+      final defFactor = (d.defense / 100.0) * EngineParams.graphMultiInterceptDefenseScale;
+      final contrib = EngineParams.graphMultiInterceptPerDefBase * (1.0 + defFactor) * (1.0 - distLane / EngineParams.graphMultiInterceptRadius);
+      agg += contrib;
+    }
+    return agg.clamp(0.0, EngineParams.graphMultiInterceptMax);
+  }
+
   var carrier = pickStarter();
   seq.add(_SeqEvent.text(messages.findsSpace(carrier.name)));
-  final closeChance =
-      0.08 + 0.22 * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
+  final closeChance = EngineParams.graphCloseBase + EngineParams.graphCloseDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
   if (rng.nextDouble() < closeChance) {
     seq.add(_SeqEvent.text(messages.defenseCloses(def.name)));
     return seq;
   }
-  final maxPassesBase = 1 + ((atk.tactics.tempo + atk.tactics.width) * 1.1).round();
-  final maxPasses = max(1, min(3, maxPassesBase));
+  final maxPassesBase = 1 + ((atk.tactics.tempo + atk.tactics.width) * EngineParams.graphPassTempoWidthFactor).round();
+  final maxPasses = max(EngineParams.graphPassMin, min(EngineParams.graphPassMax, maxPassesBase));
   for (int i = 0; i < maxPasses; i++) {
-    final interceptBase = 0.10 +
-        0.18 * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) +
-        0.05 * def.tactics.pressing;
     final rec = pickPass(carrier);
     final d = dist(carrier, rec).clamp(0.05, 1.0);
-    final interceptChance = (interceptBase + 0.15 * (d - 0.15)).clamp(0.02, 0.65);
+    final interceptBase = EngineParams.graphInterceptBase +
+        EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) +
+        EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
+    final interceptChanceSingle = (interceptBase + EngineParams.graphInterceptDistFactor * (d - 0.15));
+    final multiProb = multiDefInterceptProb(carrier, rec);
+    final interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
     if (rng.nextDouble() < interceptChance) {
       final interceptor = pickDefender();
       seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
@@ -213,11 +240,11 @@ List<_SeqEvent> _buildGraphAttackSequence(
     }
     seq.add(_SeqEvent.text(messages.pass(carrier.name, rec.name)));
     carrier = rec;
-    final foulChance = 0.05 + 0.05 * def.tactics.pressing;
+    final foulChance = EngineParams.graphFoulBase + EngineParams.graphFoulPressingFactor * def.tactics.pressing;
     if (rng.nextDouble() < foulChance) {
       final offender = pickDefender();
       seq.add(_SeqEvent.text(messages.lateFoul(def.name)));
-      final redProb = 0.03 + 0.03 * atk.tactics.tempo;
+      final redProb = EngineParams.graphRedBase + EngineParams.graphRedTempoFactor * atk.tactics.tempo;
       if (rng.nextDouble() < redProb) {
         seq.add(_SeqEvent.card(messages.foulRed(offender.name, def.name), offender,
             _CardType.red));
@@ -233,21 +260,21 @@ List<_SeqEvent> _buildGraphAttackSequence(
   final dxGoal = (goalX - (carrier.x ?? 0.5)).abs().clamp(0.0, 1.0);
   final baseQual = atkRat.attackAdj / (atkRat.attackAdj + defRat.defenseAdj + 1e-6);
   final posFactor = (1.0 - dxGoal);
-  double xg = 0.04 + 0.42 * (0.55 * baseQual + 0.45 * posFactor) +
-      (rng.nextDouble() * 0.08 - 0.04);
-  xg = xg.clamp(0.02, 0.60);
+  double xg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor) +
+      (rng.nextDouble() * EngineParams.graphXgRandomRange - EngineParams.graphXgRandomRange / 2);
+  xg = xg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
-  double pGoal = (xg * (0.95 - 0.33 * gkSave)).clamp(0.02, 0.78);
+  double pGoal = (xg * (0.95 - EngineParams.graphGoalGkSaveFactor * gkSave)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   if (rng.nextDouble() < pGoal) {
     seq.add(_SeqEvent.goal(messages.goal(atk.name, carrier.name), xg));
     return seq;
   }
   seq.add(_SeqEvent.shot(xg, 'Shot'));
-  final pSave = 0.52 - 0.18 * baseQual + 0.24 * gkSave;
+  final pSave = EngineParams.graphShotSaveBase - EngineParams.graphShotSaveQualityFactor * baseQual + EngineParams.graphShotSaveGkFactor * gkSave;
   if (rng.nextDouble() < pSave) {
     seq.add(_SeqEvent.text(messages.savedByKeeper()));
   } else {
-    if (rng.nextDouble() < 0.18) {
+    if (rng.nextDouble() < EngineParams.graphDeflectOutProb) {
       seq.add(_SeqEvent.text(messages.deflectedOut()));
     } else {
       seq.add(_SeqEvent.text(messages.offTarget()));
