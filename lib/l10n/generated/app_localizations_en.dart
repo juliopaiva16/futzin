@@ -208,4 +208,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get teamManagementTitle => 'Team Management';
+
+  @override
+  String get subOut => 'OUT';
+
+  @override
+  String get subIn => 'IN';
+
+  @override
+  String get noAbilities => 'No abilities';
 }

@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/localization/app_localizations.dart';
 
 import '../../domain/entities.dart';
+// Removed edit dialog; using local painter for radar
 
 class PlayerMarketPage extends StatefulWidget {
   const PlayerMarketPage({Key? key}) : super(key: key);
@@ -31,6 +33,15 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
     await Future.delayed(const Duration(milliseconds: 250));
 
     final rng = Random(42 + (_pos?.index ?? 0));
+    List<String> randAbilities(Position pos) {
+      // GK-only CAT ability
+      final pool = SpecialAbility.all
+          .where((a) => a.code != 'CAT' || pos == Position.GK)
+          .toList();
+      final count = rng.nextInt(4); // 0..3 abilities
+      pool.shuffle(rng);
+      return pool.take(count).map((a) => a.code).toList();
+    }
   final List<Player> pool = List.generate(25, (i) {
       Position pos = _pos ?? Position.values[rng.nextInt(Position.values.length)];
       int atk = 30 + rng.nextInt(70);
@@ -47,6 +58,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
   passing: 40 + rng.nextInt(60),
   technique: 40 + rng.nextInt(60),
   strength: 40 + rng.nextInt(60),
+          abilityCodes: randAbilities(pos),
       );
     }).where((p) =>
         (p.attack >= _minAtk) &&
@@ -165,6 +177,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
                     itemBuilder: (ctx, i) {
                       final p = _results[i];
                       return ListTile(
+                        onTap: () => _showPlayerDetails(p, context),
                         leading: CircleAvatar(child: Text(positionShort(p.pos))),
                         title: Text(p.name),
                         subtitle: Text('ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}  PAC ${p.pace} PAS ${p.passing} TEC ${p.technique} STR ${p.strength}'),
@@ -176,6 +189,47 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
                     },
                   ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPlayerDetails(Player p, BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${p.name} (${positionLabel(p.pos)})'),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 140,
+                child: CustomPaint(
+                  painter: _MarketPentagonPainter(values: [
+                    p.attack.toDouble(),
+                    p.pace.toDouble(),
+                    p.passing.toDouble(),
+                    p.technique.toDouble(),
+                    p.strength.toDouble(),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}'),
+              Text('PAC ${p.pace}  PAS ${p.passing}  TEC ${p.technique}  STR ${p.strength}'),
+              const SizedBox(height: 8),
+              const Text('Habilidades:'),
+              if (p.abilities.isEmpty)
+                const Text('No abilities', style: TextStyle(fontStyle: FontStyle.italic))
+              else ...p.abilities.map((a) => Text('- ${a.name}: ${a.desc}', style: const TextStyle(fontSize: 12))),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar')),
         ],
       ),
     );
@@ -214,4 +268,43 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
       ),
     );
   }
+
+}
+
+class _MarketPentagonPainter extends CustomPainter {
+  final List<double> values;
+  _MarketPentagonPainter({required this.values});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+  final radius = math.min(size.width, size.height) * 0.45;
+    final grid = Paint()
+      ..color = Colors.grey.withValues(alpha: 120)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final fill = Paint()
+      ..color = Colors.blue.withValues(alpha: 90)
+      ..style = PaintingStyle.fill;
+    List<Offset> poly(double s) => List.generate(5, (i) {
+          final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+          return center + Offset(math.cos(angle), math.sin(angle)) * radius * s;
+        });
+    for (final s in [1.0, 0.66, 0.33]) {
+      final pts = poly(s);
+      canvas.drawPath(Path()..addPolygon(pts, true), grid);
+    }
+    if (values.length == 5) {
+      final pts = List.generate(5, (i) {
+        final v = (values[i].clamp(0, 99)) / 99.0;
+  final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+  return center + Offset(math.cos(angle), math.sin(angle)) * radius * v;
+      });
+      final path = Path()..addPolygon(pts, true);
+      canvas.drawPath(path, fill);
+      canvas.drawPath(path, grid);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _MarketPentagonPainter old) => old.values != values;
+
 }

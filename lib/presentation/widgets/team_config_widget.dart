@@ -303,7 +303,7 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
             ? 'INJ'
             : '';
         return ListTile(
-          onTap: widget.readOnly ? null : () => _editPlayer(p),
+          onTap: () => _showPlayerDetails(p),
           leading: Checkbox(
             value: selected,
             onChanged: widget.readOnly
@@ -338,116 +338,50 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
     );
   }
 
-  Future<void> _editPlayer(Player p) async {
-  int atk = p.attack;
-  int def = p.defense;
-  int sta = p.stamina;
-  int pace = p.pace;
-  int passing = p.passing;
-  int technique = p.technique;
-  int strength = p.strength;
-    Position pos = p.pos;
+  Future<void> _showPlayerDetails(Player p) async {
+    final l10n = AppLocalizations.of(context)!;
     await showDialog(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('Edit ${p.name}'),
-          content: StatefulBuilder(
-            builder: (ctx, setS) {
-              return SizedBox(
-                width: 360,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButton<Position>(
-                      value: pos,
-                      items: Position.values
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(positionLabel(e)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setS(() => pos = v ?? pos),
-                    ),
-                    const SizedBox(height: 8),
-                    _sliderRow('ATK', atk, (v) => setS(() => atk = v)),
-                    _sliderRow('DEF', def, (v) => setS(() => def = v)),
-                    _sliderRow('STA', sta, (v) => setS(() => sta = v)),
-                    const Divider(),
-                    _sliderRow('PAC', pace, (v) => setS(() => pace = v)),
-                    _sliderRow('PAS', passing, (v) => setS(() => passing = v)),
-                    _sliderRow('TEC', technique, (v) => setS(() => technique = v)),
-                    _sliderRow('STR', strength, (v) => setS(() => strength = v)),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 140,
-                      child: CustomPaint(
-                        painter: _PentagonPainter(
-                          values: [
-                            atk.toDouble(),
-                            pace.toDouble(),
-                            passing.toDouble(),
-                            technique.toDouble(),
-                            strength.toDouble(),
-                          ],
-                        ),
-                        child: const Center(child: Text('Radar')),
-                      ),
-                    ),
-                  ],
+      builder: (ctx) => AlertDialog(
+        title: Text('${p.name} (${positionLabel(p.pos)})'),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 140,
+                child: CustomPaint(
+                  painter: _PentagonPainter(values: [
+                    p.attack.toDouble(),
+                    p.pace.toDouble(),
+                    p.passing.toDouble(),
+                    p.technique.toDouble(),
+                    p.strength.toDouble(),
+                  ]),
+                  child: const Center(child: Text('')),
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 8),
+              Text('ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}'),
+              Text('PAC ${p.pace}  PAS ${p.passing}  TEC ${p.technique}  STR ${p.strength}'),
+              const SizedBox(height: 8),
+              Text('Habilidades:'),
+              if (p.abilities.isEmpty)
+                const Text('No abilities', style: TextStyle(fontStyle: FontStyle.italic))
+              else ...p.abilities.map((a) => Text('- ${a.name}: ${a.desc}', style: const TextStyle(fontSize: 12))),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                setState(() {
-                  p.attack = atk;
-                  p.defense = def;
-                  p.stamina = sta;
-                  p.pace = pace;
-                  p.passing = passing;
-                  p.technique = technique;
-                  p.strength = strength;
-                  p.pos = pos;
-                  p.currentStamina = math.min(p.currentStamina, sta.toDouble());
-                  widget.onChanged();
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.close))
+        ],
+      ),
     );
   }
 
-  Widget _sliderRow(String label, int value, void Function(int) onChanged) {
-    return Row(
-      children: [
-        SizedBox(width: 38, child: Text(label)),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 1,
-            max: 99,
-            divisions: 98,
-            label: value.toString(),
-            onChanged: (v) => onChanged(v.round()),
-          ),
-        ),
-        SizedBox(width: 26, child: Text(value.toString())),
-      ],
-    );
-  }
+  // _sliderRow removed (editing disabled)
 
   Future<void> _openSubsDialog(TeamConfig t) async {
     await showDialog(
@@ -526,70 +460,65 @@ class _SubDialogState extends State<SubDialog> {
       title: Text(l10n.subsDialogTitle(t.name, t.subsLeft)),
       content: SizedBox(
         width: 520,
-        height: 380,
-        child: Row(
+        height: 420,
+        child: Column(
           children: [
+            // Selection lists
             Expanded(
-              child: Column(
+              child: Row(
                 children: [
-                  Text(l10n.onField),
                   Expanded(
-                    child: ListView(
-                      children: t.selected
-                          .map(
-                            (p) => RadioListTile<Player>(
-                              value: p,
-                              groupValue: outP,
-                              onChanged: (v) => setState(() => outP = v),
-                              title: Text(
-                                '${p.name} (${positionLabel(p.pos)})',
-                              ),
-                              subtitle: Text(
-                                'STA ${p.currentStamina.toStringAsFixed(0)}  YC ${p.yellowCards} ${p.injured ? l10n.statusInjured : ''} ${p.sentOff ? l10n.statusSentOff : ''}',
-                              ),
-                            ),
-                          )
-                          .toList(),
+                    child: Column(
+                      children: [
+                        Text(l10n.onField),
+                        Expanded(
+                          child: ListView(
+                            children: t.selected
+                                .map((p) => RadioListTile<Player>(
+                                      value: p,
+                                      groupValue: outP,
+                                      onChanged: (v) => setState(() => outP = v),
+                                      title: Text('${p.name} (${positionLabel(p.pos)})'),
+                                      subtitle: Text('STA ${p.currentStamina.toStringAsFixed(0)}'),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(l10n.bench),
+                        Expanded(
+                          child: ListView(
+                            children: t.bench
+                                .map((p) => RadioListTile<Player>(
+                                      value: p,
+                                      groupValue: inP,
+                                      onChanged: (v) => setState(() => inP = v),
+                                      title: Text('${p.name} (${positionLabel(p.pos)})'),
+                                      subtitle: Text('ATK ${p.attack} DEF ${p.defense} STA ${p.stamina}'),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const VerticalDivider(),
-            Expanded(
-              child: Column(
-                children: [
-                  Text(l10n.bench),
-                  Expanded(
-                    child: ListView(
-                      children: t.bench
-                          .map(
-                            (p) => RadioListTile<Player>(
-                              value: p,
-                              groupValue: inP,
-                              onChanged: (v) => setState(() => inP = v),
-                              title: Text(
-                                '${p.name} (${positionLabel(p.pos)})',
-                              ),
-                              subtitle: Text(
-                                'ATK ${p.attack} DEF ${p.defense} STA ${p.stamina}',
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
+            if (outP != null && inP != null)
+              _SubComparison(out: outP!, inn: inP!),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.close),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.close)),
         FilledButton(
           onPressed: (outP != null && inP != null && t.subsLeft > 0)
               ? () {
@@ -605,4 +534,83 @@ class _SubDialogState extends State<SubDialog> {
       ],
     );
   }
+}
+
+class _SubComparison extends StatelessWidget {
+  final Player out;
+  final Player inn;
+  const _SubComparison({required this.out, required this.inn});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(children: [
+              const Icon(Icons.arrow_downward, color: Colors.red, size: 16),
+              const SizedBox(width:4),
+              const Text('OUT', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ]),
+            Row(children: [
+              const Icon(Icons.arrow_upward, color: Colors.blue, size: 16),
+              const SizedBox(width:4),
+              const Text('IN', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+            ]),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 160,
+          child: CustomPaint(
+            painter: _DualPentagonPainter(outP: out, inP: inn),
+            child: Center(
+              child: Text('${out.name.split(' ').first} → ${inn.name.split(' ').first}', style: const TextStyle(fontSize: 12)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DualPentagonPainter extends CustomPainter {
+  final Player outP;
+  final Player inP;
+  _DualPentagonPainter({required this.outP, required this.inP});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) * 0.45;
+    List<Offset> poly(List<double> vals) {
+      return List.generate(5, (i) {
+        final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+        final v = (vals[i].clamp(0, 99)) / 99.0;
+        return center + Offset(math.cos(angle), math.sin(angle)) * radius * v;
+      });
+    }
+    final gridPaint = Paint()
+      ..color = Colors.grey.withValues(alpha: 120)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final s in [1.0, 0.66, 0.33]) {
+      final pts = List.generate(5, (i) {
+        final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+        return center + Offset(math.cos(angle), math.sin(angle)) * radius * s;
+      });
+      final path = Path()..addPolygon(pts, true);
+      canvas.drawPath(path, gridPaint);
+    }
+    final outVals = [outP.attack, outP.pace, outP.passing, outP.technique, outP.strength].map((e)=>e.toDouble()).toList();
+    final inVals = [inP.attack, inP.pace, inP.passing, inP.technique, inP.strength].map((e)=>e.toDouble()).toList();
+    final outPath = Path()..addPolygon(poly(outVals), true);
+    final inPath = Path()..addPolygon(poly(inVals), true);
+    canvas.drawPath(outPath, Paint()..color = Colors.red.withValues(alpha: 90));
+    canvas.drawPath(inPath, Paint()..color = Colors.blue.withValues(alpha: 90));
+    canvas.drawPath(outPath, Paint()..color = Colors.red..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawPath(inPath, Paint()..color = Colors.blue..style = PaintingStyle.stroke..strokeWidth = 1.5);
+  }
+  @override
+  bool shouldRepaint(covariant _DualPentagonPainter oldDelegate) => oldDelegate.outP != outP || oldDelegate.inP != inP;
 }

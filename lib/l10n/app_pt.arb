@@ -66,4 +66,7 @@
   "search": "Buscar",
   "hire": "Contratar",
   "teamManagementTitle": "Gerenciar Time"
+  ,"subOut": "SAI"
+  ,"subIn": "ENTRA"
+  ,"noAbilities": "Sem habilidades"
 }

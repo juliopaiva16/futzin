@@ -45,6 +45,27 @@ class _HomePageState extends State<HomePage> {
         final j = jsonDecode(data) as Map<String, dynamic>;
         teamA = TeamConfig.fromJson(j['teamA']);
         teamB = TeamConfig.fromJson(j['teamB']);
+        // Safeguard: if persisted squads are empty (earlier management page saved with empty squads), regenerate.
+        if (teamA.squad.isEmpty) {
+          teamA = TeamConfig(
+            name: teamA.name,
+            formation: teamA.formation,
+            tactics: teamA.tactics,
+            squad: _generateSquad('A'),
+          )..autoPick();
+        } else if (!teamA.isLineupValid) {
+          teamA.autoPick();
+        }
+        if (teamB.squad.isEmpty) {
+          teamB = TeamConfig(
+            name: teamB.name,
+            formation: teamB.formation,
+            tactics: teamB.tactics,
+            squad: _generateSquad('B'),
+          )..autoPick();
+        } else if (!teamB.isLineupValid) {
+          teamB.autoPick();
+        }
         loaded = true;
         setState(() {});
         return;
@@ -115,6 +136,14 @@ class _HomePageState extends State<HomePage> {
 
     int r(int min, int max) => min + rng.nextInt(max - min + 1);
     String pid() => '${tag}_${rng.nextInt(1000000)}';
+    List<String> randAbilities(Position pos) {
+      final pool = SpecialAbility.all
+          .where((a) => a.code != 'CAT' || pos == Position.GK)
+          .toList();
+      final count = rng.nextInt(4); // 0..3
+      pool.shuffle(rng);
+      return pool.take(count).map((a) => a.code).toList();
+    }
 
     final squad = <Player>[];
 
@@ -131,6 +160,7 @@ class _HomePageState extends State<HomePage> {
           passing: r(40, 75),
           technique: r(35, 70),
           strength: r(55, 90),
+          abilityCodes: randAbilities(Position.GK),
         ),
       );
     }
@@ -147,6 +177,7 @@ class _HomePageState extends State<HomePage> {
           passing: r(45, 75),
           technique: r(40, 75),
           strength: r(60, 95),
+          abilityCodes: randAbilities(Position.DEF),
         ),
       );
     }
@@ -163,6 +194,7 @@ class _HomePageState extends State<HomePage> {
           passing: r(60, 95),
           technique: r(60, 95),
           strength: r(45, 80),
+          abilityCodes: randAbilities(Position.MID),
         ),
       );
     }
@@ -179,6 +211,7 @@ class _HomePageState extends State<HomePage> {
           passing: r(55, 90),
           technique: r(65, 99),
           strength: r(45, 80),
+          abilityCodes: randAbilities(Position.FWD),
         ),
       );
     }
@@ -188,8 +221,11 @@ class _HomePageState extends State<HomePage> {
 
   void _startMatch() async {
     final l10n = AppLocalizations.of(context)!;
+    // Auto-correct any invalid lineup (especially opponent which user can't edit)
+    if (!teamA.isLineupValid) teamA.autoPick();
+    if (!teamB.isLineupValid) teamB.autoPick();
     if (!teamA.isLineupValid || !teamB.isLineupValid) {
-      _showSnack(l10n.invalidLineups);
+      _showSnack(l10n.invalidLineups); // still invalid -> abort
       return;
     }
     await _saveState();

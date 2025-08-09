@@ -209,4 +209,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get teamManagementTitle => 'Gerenciar Time';
+
+  @override
+  String get subOut => 'SAI';
+
+  @override
+  String get subIn => 'ENTRA';
+
+  @override
+  String get noAbilities => 'Sem habilidades';
 }

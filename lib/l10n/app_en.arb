@@ -66,4 +66,7 @@
   "search": "Search",
   "hire": "Hire",
   "teamManagementTitle": "Team Management"
+  ,"subOut": "OUT"
+  ,"subIn": "IN"
+  ,"noAbilities": "No abilities"
 }

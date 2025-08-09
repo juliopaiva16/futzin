@@ -451,6 +451,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Team Management'**
   String get teamManagementTitle;
+
+  /// No description provided for @subOut.
+  ///
+  /// In en, this message translates to:
+  /// **'OUT'**
+  String get subOut;
+
+  /// No description provided for @subIn.
+  ///
+  /// In en, this message translates to:
+  /// **'IN'**
+  String get subIn;
+
+  /// No description provided for @noAbilities.
+  ///
+  /// In en, this message translates to:
+  /// **'No abilities'**
+  String get noAbilities;
 }
 
 class _AppLocalizationsDelegate

@@ -45,6 +45,8 @@ class Player {
   int passing; // distribution / vision
   int technique; // dribbling / control
   int strength; // physical / duels
+  // Special abilities (codes) - up to 3 entries
+  final List<String> abilityCodes;
   double currentStamina;
   int yellowCards;
   bool injured;
@@ -61,11 +63,13 @@ class Player {
     required this.passing,
     required this.technique,
     required this.strength,
+    List<String>? abilityCodes,
     double? currentStamina,
     this.yellowCards = 0,
     this.injured = false,
     this.sentOff = false,
-  }) : currentStamina = currentStamina ?? stamina.toDouble();
+  })  : abilityCodes = List.unmodifiable((abilityCodes ?? []).take(3)),
+        currentStamina = currentStamina ?? stamina.toDouble();
 
   Player copy() => Player(
     id: id,
@@ -78,6 +82,7 @@ class Player {
     passing: passing,
     technique: technique,
     strength: strength,
+    abilityCodes: abilityCodes,
     currentStamina: currentStamina,
     yellowCards: yellowCards,
     injured: injured,
@@ -95,6 +100,7 @@ class Player {
   'passing': passing,
   'technique': technique,
   'strength': strength,
+    'abilities': abilityCodes,
   };
 
   static Player fromJson(Map<String, dynamic> j) => Player(
@@ -108,7 +114,37 @@ class Player {
   passing: (j['passing'] ?? 60),
   technique: (j['technique'] ?? 60),
   strength: (j['strength'] ?? 60),
+    abilityCodes: (j['abilities'] as List?)?.map((e) => e.toString()).toList(),
   );
+}
+
+/// Special player ability definition with lightweight effect tags.
+class SpecialAbility {
+  final String code; // short code (e.g. VIS, PAS, DRB)
+  final String name; // display name
+  final String desc; // description / effect summary
+  const SpecialAbility(this.code, this.name, this.desc);
+
+  static const all = <SpecialAbility>[
+    SpecialAbility('VIS', 'Visão Aguçada', 'Melhora visão de jogo: menos interceptações.'),
+    SpecialAbility('PAS', 'Passe na Medida', 'Passes mais precisos: +xG leve em finalizações.'),
+    SpecialAbility('DRB', 'Drible Sagaz', 'Pode alongar jogadas com um passe extra.'),
+    SpecialAbility('FIN', 'Finalização Letal', 'Maior chance de converter chutes em gol.'),
+    SpecialAbility('WALL', 'Muralha', 'Fortalece a linha defensiva.'),
+    SpecialAbility('ENG', 'Motor Inesgotável', 'Cansa menos ao longo do jogo.'),
+    SpecialAbility('CAT', 'Gato no Gol', 'Maior taxa de defesas decisivas (apenas GK).'),
+    SpecialAbility('CAP', 'Capitão Inspirador', 'Pequeno bônus global ao time em campo.'),
+  ];
+
+  static SpecialAbility? byCode(String c) => all.firstWhere(
+        (a) => a.code == c,
+        orElse: () => const SpecialAbility('UNK', 'Desconhecida', 'Desconhecida'),
+      );
+}
+
+extension PlayerAbilitiesX on Player {
+  bool hasAbility(String code) => abilityCodes.contains(code);
+  Iterable<SpecialAbility> get abilities => abilityCodes.map((c) => SpecialAbility.byCode(c)!).where((a) => a.code != 'UNK');
 }
 
 class Formation {
@@ -191,7 +227,7 @@ class TeamConfig {
   Tactics tactics;
   final List<Player> squad;
   final Set<String> selectedIds = {}; // players on field by id
-  int subsLeft = 5;
+  int subsLeft = 9999; // effectively unlimited in management context
 
   TeamConfig({
     required this.name,
@@ -297,18 +333,16 @@ class TeamConfig {
   }
 
   bool makeSub(Player out, Player inn) {
-    if (subsLeft <= 0) return false;
     if (!selectedIds.contains(out.id)) return false;
     if (selectedIds.contains(inn.id)) return false;
     if (out.sentOff) return false; // cannot replace a red card
     selectedIds.remove(out.id);
     selectedIds.add(inn.id);
-    subsLeft--;
     return true;
   }
 
   void resetRuntime() {
-    subsLeft = 5;
+    subsLeft = 9999;
     for (final p in squad) {
       p.currentStamina = p.stamina.toDouble().clamp(0, 100);
       p.yellowCards = 0;
