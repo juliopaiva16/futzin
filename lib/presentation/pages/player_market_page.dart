@@ -19,6 +19,10 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
   double _minAtk = 50;
   double _minDef = 50;
   double _minSta = 60;
+  double _minPace = 50;
+  double _minPassing = 50;
+  double _minTechnique = 50;
+  double _minStrength = 50;
   List<Player> _results = [];
   bool _loading = false;
 
@@ -27,7 +31,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
     await Future.delayed(const Duration(milliseconds: 250));
 
     final rng = Random(42 + (_pos?.index ?? 0));
-    final List<Player> pool = List.generate(25, (i) {
+  final List<Player> pool = List.generate(25, (i) {
       Position pos = _pos ?? Position.values[rng.nextInt(Position.values.length)];
       int atk = 30 + rng.nextInt(70);
       int def = 30 + rng.nextInt(70);
@@ -48,6 +52,10 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
         (p.attack >= _minAtk) &&
         (p.defense >= _minDef) &&
         (p.stamina >= _minSta) &&
+    (p.pace >= _minPace) &&
+    (p.passing >= _minPassing) &&
+    (p.technique >= _minTechnique) &&
+    (p.strength >= _minStrength) &&
         (_pos == null || p.pos == _pos)).toList();
 
     setState(() {
@@ -103,7 +111,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -125,15 +133,20 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
                   ],
                   onChanged: (v) => setState(() => _pos = v),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
+                // Core attributes
                 _verticalStatSlider('ATK', _minAtk, (v) => setState(() => _minAtk = v)),
-                const SizedBox(height: 12),
                 _verticalStatSlider('DEF', _minDef, (v) => setState(() => _minDef = v)),
-                const SizedBox(height: 12),
                 _verticalStatSlider('STA', _minSta, (v) => setState(() => _minSta = v), min: 40),
-                const SizedBox(height: 20),
+                const Divider(height: 20),
+                // Extended attributes
+                _verticalStatSlider('PAC', _minPace, (v) => setState(() => _minPace = v)),
+                _verticalStatSlider('PAS', _minPassing, (v) => setState(() => _minPassing = v)),
+                _verticalStatSlider('TEC', _minTechnique, (v) => setState(() => _minTechnique = v)),
+                _verticalStatSlider('STR', _minStrength, (v) => setState(() => _minStrength = v)),
+                const SizedBox(height: 8),
                 SizedBox(
-                  height: 54,
+                  height: 44,
                   child: FilledButton.icon(
                     onPressed: _search,
                     icon: const Icon(Icons.search),
@@ -169,25 +182,36 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
   }
 
   Widget _verticalStatSlider(String label, double value, void Function(double) onChanged, {double min = 0}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-            const Spacer(),
-            Text(value.toStringAsFixed(0)),
-          ],
-        ),
-        Slider(
-          value: value,
-          min: min,
-          max: 99,
-          divisions: 99 - min.toInt(),
-          label: value.toStringAsFixed(0),
-          onChanged: onChanged,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(width: 44, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  ),
+                  child: Slider(
+                    value: value,
+                    min: min,
+                    max: 99,
+                    divisions: 99 - min.toInt(),
+                    label: value.toStringAsFixed(0),
+                    onChanged: onChanged,
+                  ),
+                ),
+              ),
+              SizedBox(width: 34, child: Text(value.toStringAsFixed(0), textAlign: TextAlign.end)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
