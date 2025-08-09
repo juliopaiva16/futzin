@@ -8,7 +8,10 @@ void _applyFatigue(TeamConfig t) {
     final tempo = t.tactics.tempo;
     final pressing = t.tactics.pressing;
     final fatigue = base + 0.35 * tempo + 0.25 * pressing;
-    p.currentStamina = (p.currentStamina - fatigue * 100 / 90).clamp(0, 100);
+    // Ability ENG reduces decay proportionally (relative reduction)
+    final rel = p.hasAbility('ENG') ? (1 - EngineParams.graphAbilityEngStaminaDecayRel) : 1.0;
+    final perMin = fatigue * rel;
+    p.currentStamina = (p.currentStamina - perMin * 100 / 90).clamp(0, 100);
   }
 }
 
@@ -34,5 +37,10 @@ _TeamRatings _teamRatings(TeamConfig t) {
   defense += pressing * 6.0;
   attack *= (1.0 + 0.06 * line);
   defense *= (1.0 - 0.06 * line);
+  // CAP ability small global buff (applied once if any CAP on field)
+  if (t.selected.any((p) => p.hasAbility('CAP'))) {
+    attack *= (1 + EngineParams.graphAbilityCapTeamAdj);
+    defense *= (1 + EngineParams.graphAbilityCapTeamAdj);
+  }
   return _TeamRatings(attackAdj: attack, defenseAdj: defense, gk: gk.isNotEmpty ? gk.first : null);
 }

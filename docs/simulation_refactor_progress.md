@@ -16,7 +16,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 3 | Arestas ponderadas + intercept multi-defensor | Peso aresta, pressão, intercept calc | DONE | 2025-08-09 | 2025-08-09 |
 | 4 | Ações adicionais (PassLongo, Drible, Recuar, Manter, Lançamento) | Scoring tabela, softmax decisão | TUNE | 2025-08-09 | - |
 | 5 | Habilidades (passes + drible + finalização + defesa) | Aplicar mapa de efeitos por fase | TUNE | 2025-08-09 | - |
-| 6 | Stamina nova + recalibração ratings | Decay tick, attrEff, testes ENG | TODO | - | - |
+| 6 | Stamina nova + recalibração ratings | Decay tick, attrEff, testes ENG | DOING | 2025-08-09 | - |
 | 7 | Momentum/xG tuning | Ajustar ranges, comparar baseline | TODO | - | - |
 | 8 | Flag modo experimental + UI toggles | Persistência flag, fallback engine antiga | DONE | 2025-08-09 | 2025-08-09 |
 | 9 | Limpeza e remoção engine antiga | Deprecar código legado | TODO | - | - |
@@ -44,7 +44,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 - [x] Habilidades drible (DRB) aplicadas (peso + sucesso).
 - [x] Habilidades finalização (FIN) aplicadas pGoal pós cálculo (sem duplicar xG).
 - [x] Habilidades defensivas parciais (WALL intercept rel, CAT save/pGoal + rating parcial, CAP team adj).
-- [ ] Habilidades stamina (ENG) (placeholder só em params; ainda não aplicado no decay real).
+- [x] Habilidades stamina (ENG) reduzindo decay básico (fase parcial - restante modelo stamina fase 6).
 - [ ] Outras habilidades planeadas (MRK, AER, REF, COM, HDR, CLT, B2B, SPR, SWS) – não implementadas.
 - [x] Script batch expandido (métricas detalhadas: tipos de passe, drible, launch, habilidades).
 - [ ] Test unit: action selection monotonicidade.
@@ -65,6 +65,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | % Sucesso drible | 40–60% | - | ~50.5% | Dentro alvo para amostra pequena |
 | Intercepts/jogo | 35–65 | 9.6 | 12.8 | Escala diferente; talvez multiplicar eventos micro no futuro |
 | Stamina média 90' | 30–55 | ? | ? | Nova stamina (fase 6) pendente |
+| ENG retenção stamina | +10–20pp vs controle | - | Parcial (redução decay implementada) | Medir após batch c/ abilities |
 
 (Últimas medições: batches de 50–200 jogos em modo graph.)
 
@@ -120,6 +121,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-09 | 4 | Caps por sequência (1 drible / 1 long) + ajuste pesos adicionais | TUNE |
 | 2025-08-09 | 4 | Adaptive short boost pós ação arriscada | TUNE |
 | 2025-08-09 | 5 | Integração habilidades (VIS, PAS, DRB, FIN, WALL, CAT, CAP) em intercept/drible/pGoal/ratings | TUNE |
+| 2025-08-09 | 6 | ENG aplicado na fadiga (redução decay) | DOING |
 | 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
 | 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 
@@ -131,4 +133,4 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 (Manter este arquivo enxuto; detalhes conceituais permanecem na proposta.)
 
 ## Próxima Ação Imediata
-- Testes unit de habilidades chave + aplicar ENG no decay antes da fase 6 completa.
+- Atribuir habilidades aleatórias controladas no batch para gerar métricas e validar ENG retenção, VIS intercept ↓, FIN pGoal ↑.

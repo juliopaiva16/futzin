@@ -47,6 +47,20 @@ Player _rndPlayer(Random r, int idx, Position pos) {
   final attack = base(40, 80);
   final defense = base(40, 80);
   final stamina = base(60, 95);
+  // Assign abilities with small probabilities (tunable)
+  final abilities = <String>[];
+  double roll() => r.nextDouble();
+  // Core field abilities
+  if (pos != Position.GK && roll() < 0.08) abilities.add('VIS');
+  if (pos != Position.GK && roll() < 0.08) abilities.add('PAS');
+  if (pos != Position.GK && roll() < 0.07) abilities.add('DRB');
+  if (pos == Position.FWD && roll() < 0.10) abilities.add('FIN');
+  if (pos == Position.DEF && roll() < 0.10) abilities.add('WALL');
+  if (roll() < 0.06) abilities.add('ENG');
+  if (roll() < 0.05) abilities.add('CAP');
+  if (pos == Position.GK && roll() < 0.25) abilities.add('CAT');
+  // Trim duplicates and cap at 3 (Player constructor enforces cap)
+  final dedup = abilities.toSet().toList();
   return Player(
     id: 'P$idx${pos.name}',
     name: 'P$idx',
@@ -58,7 +72,7 @@ Player _rndPlayer(Random r, int idx, Position pos) {
     passing: base(50, 90),
     technique: base(50, 90),
     strength: base(45, 85),
-    abilityCodes: const [],
+    abilityCodes: dedup,
   );
 }
 
@@ -336,6 +350,13 @@ Future<void> main(List<String> args) async {
     totalInterceptsWall += res['interceptsWall'] as int;
     totalSavesCat += res['savesCat'] as int;
     totalGoalsAgainstCat += res['goalsAgainstCat'] as int;
+    totalVisPlayers += res['visPlayers'] as int;
+    totalPasPlayers += res['pasPlayers'] as int;
+    totalDrbPlayers += res['drbPlayers'] as int;
+    totalFinPlayers += res['finPlayers'] as int;
+    totalWallPlayers += res['wallPlayers'] as int;
+    totalCatPlayers += res['catPlayers'] as int;
+    totalCapPlayers += res['capPlayers'] as int;
   }
   double avg(String k) => results.map((m) => (m[k] as num).toDouble()).fold(0.0, (a, b) => a + b) / results.length;
   final avgXg = avg('xgA') + avg('xgB');
