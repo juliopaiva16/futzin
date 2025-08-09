@@ -83,4 +83,12 @@ class EngineParams {
   static const double graphMultiInterceptPerDefBase = 0.08; // base per-defender intercept component
   static const double graphMultiInterceptDefenseScale = 0.60; // scales (defense/100)
   static const double graphMultiInterceptMax = 0.80; // cap after aggregation
+
+  // Retuned (v2) multi-defender interception (softer aggregation)
+  static const double graphMultiInterceptRadiusV2 = 0.15; // tighter lane
+  static const double graphMultiInterceptPerDefBaseV2 = 0.030; // lower base
+  static const double graphMultiInterceptDefenseScaleV2 = 0.40; // softer defense influence
+  static const double graphMultiInterceptLaneTMinV2 = 0.08; // ignore very near passer
+  static const double graphMultiInterceptLaneTMaxV2 = 0.92; // ignore very near receiver
+  static const double graphMultiInterceptMaxV2 = 0.35; // much lower cap after 1 - prod
 }

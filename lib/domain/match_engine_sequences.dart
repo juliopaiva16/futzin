@@ -195,24 +195,30 @@ List<_SeqEvent> _buildGraphAttackSequence(
       final fx = from.x ?? 0.5, fy = from.y ?? 0.5;
       final tx = to.x ?? 0.5, ty = to.y ?? 0.5;
       final dx = tx - fx; final dy = ty - fy;
-      if (dx.abs() < 1e-6 && dy.abs() < 1e-6) return 999; // degenerate
+      if (dx.abs() < 1e-6 && dy.abs() < 1e-6) return 999;
       final pdx = (d.x ?? 0.5) - fx; final pdy = (d.y ?? 0.5) - fy;
-      final t = ((pdx * dx) + (pdy * dy)) / (dx*dx + dy*dy);
-      final clamped = t.clamp(0.0, 1.0);
-      final cx = fx + dx * clamped; final cy = fy + dy * clamped;
+      final tRaw = ((pdx * dx) + (pdy * dy)) / (dx*dx + dy*dy);
+      final t = tRaw.clamp(0.0, 1.0);
+      // Lane window filter (ignore near endpoints)
+      if (t < EngineParams.graphMultiInterceptLaneTMinV2 || t > EngineParams.graphMultiInterceptLaneTMaxV2) return 999;
+      final cx = fx + dx * t; final cy = fy + dy * t;
       final ddx = (d.x ?? 0.5) - cx; final ddy = (d.y ?? 0.5) - cy;
       return sqrt(ddx*ddx + ddy*ddy);
     }
+    final radius = EngineParams.graphMultiInterceptRadiusV2;
     final candidates = defAlive.where((d) => !d.sentOff && !d.injured).toList();
-    double agg = 0.0;
+    double nonInterceptProd = 1.0; // multiplicative complement aggregation
     for (final d in candidates) {
       final distLane = segDist(d);
-      if (distLane > EngineParams.graphMultiInterceptRadius) continue;
-      final defFactor = (d.defense / 100.0) * EngineParams.graphMultiInterceptDefenseScale;
-      final contrib = EngineParams.graphMultiInterceptPerDefBase * (1.0 + defFactor) * (1.0 - distLane / EngineParams.graphMultiInterceptRadius);
-      agg += contrib;
+      if (distLane > radius) continue;
+      final defFactor = (d.defense / 100.0) * EngineParams.graphMultiInterceptDefenseScaleV2;
+      final proximity = 1.0 - distLane / radius; // 0 at edge -> 1 at lane
+      double p = EngineParams.graphMultiInterceptPerDefBaseV2 * (1.0 + defFactor) * proximity;
+      p = p.clamp(0.0, 0.25); // per defender cap
+      nonInterceptProd *= (1.0 - p);
     }
-    return agg.clamp(0.0, EngineParams.graphMultiInterceptMax);
+    final agg = 1.0 - nonInterceptProd; // combined probability
+    return agg.clamp(0.0, EngineParams.graphMultiInterceptMaxV2);
   }
 
   var carrier = pickStarter();
