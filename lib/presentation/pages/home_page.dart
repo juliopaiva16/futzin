@@ -294,7 +294,7 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.all(12),
               children: [
                 TeamConfigWidget(
-                  title: 'Time A',
+                  title: teamA.name,
                   team: teamA,
                   simRunning: simRunning,
                   onChanged: () async {
@@ -308,26 +308,22 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TeamConfigWidget(
-                  title: 'Time B',
-                  team: teamB,
-                  simRunning: simRunning,
-                  onChanged: () async {
-                    setState(() {});
-                    await _saveState();
-                  },
-                  onSubstitute: (out, inn) {
-                    final ok = teamB.makeSub(out, inn);
-                    if (!ok) _showSnack('Invalid substitution');
-                    setState(() {});
-                  },
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: simRunning ? null : _startMatch,
-                  icon: const Icon(Icons.sports_soccer),
-                  label: Text(l10n.startButton),
-                ),
+                if (simRunning) // only show opponent config during match (read-only)
+                  TeamConfigWidget(
+                    title: teamB.name,
+                    team: teamB,
+                    simRunning: simRunning,
+                    readOnly: true,
+                    onChanged: () {},
+                    onSubstitute: (out, inn) {},
+                  ),
+                if (!simRunning) ...[
+                  FilledButton.icon(
+                    onPressed: _startMatch,
+                    icon: const Icon(Icons.sports_soccer),
+                    label: Text(l10n.startButton),
+                  ),
+                ],
               ],
             ),
           ),

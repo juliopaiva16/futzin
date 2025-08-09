@@ -76,31 +76,15 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
           )
         ],
       ),
-      body: Row(
+      body: ListView(
+        padding: const EdgeInsets.all(12),
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                TeamConfigWidget(
-                  title: 'Meu Time',
-                  team: teamA!,
-                  simRunning: false,
-                  onChanged: _save,
-                  onSubstitute: (o, i) {
-                    // No-op here; subs are mainly for live match
-                  },
-                ),
-                const SizedBox(height: 12),
-                TeamConfigWidget(
-                  title: 'Adversário',
-                  team: teamB!,
-                  simRunning: false,
-                  onChanged: _save,
-                  onSubstitute: (o, i) {},
-                ),
-              ],
-            ),
+          TeamConfigWidget(
+            title: 'Meu Time',
+            team: teamA!,
+            simRunning: false,
+            onChanged: _save,
+            onSubstitute: (o, i) {},
           ),
         ],
       ),

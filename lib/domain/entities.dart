@@ -19,6 +19,20 @@ String positionLabel(Position p) {
   }
 }
 
+// Short (1-letter) position code for compact UI widgets like avatars.
+String positionShort(Position p) {
+  switch (p) {
+    case Position.GK:
+      return 'G';
+    case Position.DEF:
+      return 'D';
+    case Position.MID:
+      return 'M';
+    case Position.FWD:
+      return 'F';
+  }
+}
+
 class Player {
   final String id;
   String name;

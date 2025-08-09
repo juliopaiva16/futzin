@@ -79,6 +79,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
     // Prevent duplicate IDs
     if (!teamA.squad.any((e) => e.id == p.id)) {
       teamA.squad.add(p);
+  if (!mounted) return; // Ensure context is valid after async work
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${p.name} contratado para ${teamA.name}!')),
       );
@@ -99,38 +100,41 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                DropdownButton<Position>(
-                  hint: Text(l10n.filterPosition),
-                  value: _pos,
-                  items: [
-                    DropdownMenuItem(
-                      value: null,
-                      child: Text(l10n.any),
-                    ),
-                    ...Position.values.map(
-                      (e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(positionLabel(e)),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  DropdownButton<Position>(
+                    hint: Text(l10n.filterPosition),
+                    value: _pos,
+                    items: [
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text(l10n.any),
                       ),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() => _pos = v),
-                ),
-                const SizedBox(width: 12),
-                _statFilter('ATK', _minAtk, (v) => setState(() => _minAtk = v)),
-                const SizedBox(width: 12),
-                _statFilter('DEF', _minDef, (v) => setState(() => _minDef = v)),
-                const SizedBox(width: 12),
-                _statFilter('STA', _minSta, (v) => setState(() => _minSta = v), min: 40),
-                const Spacer(),
-                FilledButton.icon(
-                  onPressed: _search,
-                  icon: const Icon(Icons.search),
-                  label: Text(l10n.search),
-                ),
-              ],
+                      ...Position.values.map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(positionLabel(e)),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _pos = v),
+                  ),
+                  const SizedBox(width: 12),
+                  _statFilter('ATK', _minAtk, (v) => setState(() => _minAtk = v)),
+                  const SizedBox(width: 12),
+                  _statFilter('DEF', _minDef, (v) => setState(() => _minDef = v)),
+                  const SizedBox(width: 12),
+                  _statFilter('STA', _minSta, (v) => setState(() => _minSta = v), min: 40),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: _search,
+                    icon: const Icon(Icons.search),
+                    label: Text(l10n.search),
+                  ),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),

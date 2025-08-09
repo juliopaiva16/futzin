@@ -179,4 +179,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get endMatch => 'Fim de jogo!';
+
+  @override
+  String get hubTitle => 'Menu';
+
+  @override
+  String get navPlayerMarket => 'Mercado de Jogadores';
+
+  @override
+  String get navTeamManagement => 'Gerenciar Time';
+
+  @override
+  String get navGoToMatch => 'Ir para Partida';
+
+  @override
+  String get marketTitle => 'Mercado';
+
+  @override
+  String get filterPosition => 'Posição';
+
+  @override
+  String get any => 'Qualquer';
+
+  @override
+  String get search => 'Buscar';
+
+  @override
+  String get hire => 'Contratar';
+
+  @override
+  String get teamManagementTitle => 'Gerenciar Time';
 }

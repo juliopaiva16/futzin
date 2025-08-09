@@ -55,4 +55,15 @@
   "subInjury": "Substitution {team}: {out} feels pain and leaves, {inn} comes in.",
   "subYellowRisk": "Substitution {team}: {out} (booked) out, {inn} in.",
   "endMatch": "Full time!"
+,
+  "hubTitle": "Hub",
+  "navPlayerMarket": "Player Market",
+  "navTeamManagement": "Team Management",
+  "navGoToMatch": "Go to Match",
+  "marketTitle": "Player Market",
+  "filterPosition": "Position",
+  "any": "Any",
+  "search": "Search",
+  "hire": "Hire",
+  "teamManagementTitle": "Team Management"
 }

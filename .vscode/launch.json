@@ -1,0 +1,77 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: Debug Web (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: Profile Web (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome"],
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Flutter: Release Web (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome"],
+      "flutterMode": "release"
+    },
+    {
+      "name": "Flutter: Debug Android Emulator",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "emulator-5554",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: Debug Linux Desktop",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "linux"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: Release Linux Desktop",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "linux"],
+      "flutterMode": "release"
+    },
+    {
+      "name": "Flutter: Debug macOS",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "macos"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: Debug Windows",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "windows"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: Debug iOS Simulator",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "ios"],
+      "flutterMode": "debug"
+    }
+  ]
+}

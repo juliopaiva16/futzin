@@ -391,6 +391,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Full time!'**
   String get endMatch;
+
+  /// No description provided for @hubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hub'**
+  String get hubTitle;
+
+  /// No description provided for @navPlayerMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Player Market'**
+  String get navPlayerMarket;
+
+  /// No description provided for @navTeamManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Management'**
+  String get navTeamManagement;
+
+  /// No description provided for @navGoToMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Match'**
+  String get navGoToMatch;
+
+  /// No description provided for @marketTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Player Market'**
+  String get marketTitle;
+
+  /// No description provided for @filterPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Position'**
+  String get filterPosition;
+
+  /// No description provided for @any.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get any;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @hire.
+  ///
+  /// In en, this message translates to:
+  /// **'Hire'**
+  String get hire;
+
+  /// No description provided for @teamManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Management'**
+  String get teamManagementTitle;
 }
 
 class _AppLocalizationsDelegate

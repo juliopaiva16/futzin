@@ -11,6 +11,7 @@ class TeamConfigWidget extends StatefulWidget {
   final bool simRunning;
   final VoidCallback onChanged;
   final void Function(Player out, Player inn) onSubstitute;
+  final bool readOnly; // when true, all editing is disabled
   const TeamConfigWidget({
     super.key,
     required this.title,
@@ -18,6 +19,7 @@ class TeamConfigWidget extends StatefulWidget {
     required this.onChanged,
     required this.simRunning,
     required this.onSubstitute,
+    this.readOnly = false,
   });
 
   @override
@@ -39,17 +41,23 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
               children: [
                 Text(widget.title, style: theme.textTheme.titleLarge),
                 const Spacer(),
-                SizedBox(
-                  width: 150,
-                  child: TextField(
-                    controller: TextEditingController(text: t.name),
-                    decoration: InputDecoration(labelText: l10n.teamName),
-                    onChanged: (v) {
-                      t.name = v;
-                      widget.onChanged();
-                    },
+                if (!widget.readOnly)
+                  SizedBox(
+                    width: 150,
+                    child: TextField(
+                      controller: TextEditingController(text: t.name),
+                      decoration: InputDecoration(labelText: l10n.teamName),
+                      onChanged: (v) {
+                        t.name = v;
+                        widget.onChanged();
+                      },
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(t.name, style: theme.textTheme.titleMedium),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -64,14 +72,16 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
                         (f) => DropdownMenuItem(value: f, child: Text(f.name)),
                       )
                       .toList(),
-                  onChanged: (f) {
-                    if (f == null) return;
-                    setState(() {
-                      t.formation = f;
-                      t.autoPick();
-                      widget.onChanged();
-                    });
-                  },
+                  onChanged: widget.readOnly
+                      ? null
+                      : (f) {
+                          if (f == null) return;
+                          setState(() {
+                            t.formation = f;
+                            t.autoPick();
+                            widget.onChanged();
+                          });
+                        },
                 ),
                 const Spacer(),
                 Text(
@@ -80,27 +90,29 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
               ],
             ),
             const SizedBox(height: 8),
-            _tacticsSliders(t),
+            if (!widget.readOnly) _tacticsSliders(t),
             const SizedBox(height: 8),
             Row(
               children: [
-                FilledButton(
-                  onPressed: widget.simRunning
-                      ? null
-                      : () {
-                          setState(() {
-                            t.autoPick();
-                            widget.onChanged();
-                          });
-                        },
-                  child: Text(l10n.autoPick),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: () => _openSubsDialog(t),
-                  icon: const Icon(Icons.swap_horiz),
-                  label: Text(l10n.subs(t.subsLeft)),
-                ),
+                if (!widget.readOnly)
+                  FilledButton(
+                    onPressed: widget.simRunning
+                        ? null
+                        : () {
+                            setState(() {
+                              t.autoPick();
+                              widget.onChanged();
+                            });
+                          },
+                    child: Text(l10n.autoPick),
+                  ),
+                if (!widget.readOnly) const SizedBox(width: 12),
+                if (!widget.readOnly)
+                  OutlinedButton.icon(
+                    onPressed: () => _openSubsDialog(t),
+                    icon: const Icon(Icons.swap_horiz),
+                    label: Text(l10n.subs(t.subsLeft)),
+                  ),
                 const SizedBox(width: 12),
                 Text(
                   t.isLineupValid ? l10n.validLineup : l10n.incompleteLineup,
@@ -291,21 +303,23 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
             ? 'INJ'
             : '';
         return ListTile(
-          onTap: () => _editPlayer(p),
+          onTap: widget.readOnly ? null : () => _editPlayer(p),
           leading: Checkbox(
             value: selected,
-            onChanged: (v) {
-              setState(() {
-                if (v == true) {
-                  if (t.canSelect(p)) {
-                    t.selectedIds.add(p.id);
-                  }
-                } else {
-                  t.selectedIds.remove(p.id);
-                }
-                widget.onChanged();
-              });
-            },
+            onChanged: widget.readOnly
+                ? null
+                : (v) {
+                    setState(() {
+                      if (v == true) {
+                        if (t.canSelect(p)) {
+                          t.selectedIds.add(p.id);
+                        }
+                      } else {
+                        t.selectedIds.remove(p.id);
+                      }
+                      widget.onChanged();
+                    });
+                  },
           ),
           title: Text(
             "${p.name} (${positionLabel(p.pos)}) ${status.isNotEmpty ? '[$status]' : ''}",

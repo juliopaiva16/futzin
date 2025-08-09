@@ -55,4 +55,15 @@
   "subInjury": "Substituição {team}: {out} sente e sai, entra {inn}.",
   "subYellowRisk": "Substituição {team}: {out} (amarelado) dá lugar a {inn}.",
   "endMatch": "Fim de jogo!"
+,
+  "hubTitle": "Menu",
+  "navPlayerMarket": "Mercado de Jogadores",
+  "navTeamManagement": "Gerenciar Time",
+  "navGoToMatch": "Ir para Partida",
+  "marketTitle": "Mercado",
+  "filterPosition": "Posição",
+  "any": "Qualquer",
+  "search": "Buscar",
+  "hire": "Contratar",
+  "teamManagementTitle": "Gerenciar Time"
 }

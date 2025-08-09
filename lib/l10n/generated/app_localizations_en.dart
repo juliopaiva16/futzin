@@ -178,4 +178,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get endMatch => 'Full time!';
+
+  @override
+  String get hubTitle => 'Hub';
+
+  @override
+  String get navPlayerMarket => 'Player Market';
+
+  @override
+  String get navTeamManagement => 'Team Management';
+
+  @override
+  String get navGoToMatch => 'Go to Match';
+
+  @override
+  String get marketTitle => 'Player Market';
+
+  @override
+  String get filterPosition => 'Position';
+
+  @override
+  String get any => 'Any';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get hire => 'Hire';
+
+  @override
+  String get teamManagementTitle => 'Team Management';
 }
