@@ -99,42 +99,44 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  DropdownButton<Position>(
-                    hint: Text(l10n.filterPosition),
-                    value: _pos,
-                    items: [
-                      DropdownMenuItem(
-                        value: null,
-                        child: Text(l10n.any),
+            padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<Position>(
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: l10n.filterPosition),
+                  value: _pos,
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(l10n.any),
+                    ),
+                    ...Position.values.map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(positionLabel(e)),
                       ),
-                      ...Position.values.map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(positionLabel(e)),
-                        ),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _pos = v),
-                  ),
-                  const SizedBox(width: 12),
-                  _statFilter('ATK', _minAtk, (v) => setState(() => _minAtk = v)),
-                  const SizedBox(width: 12),
-                  _statFilter('DEF', _minDef, (v) => setState(() => _minDef = v)),
-                  const SizedBox(width: 12),
-                  _statFilter('STA', _minSta, (v) => setState(() => _minSta = v), min: 40),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _pos = v),
+                ),
+                const SizedBox(height: 20),
+                _verticalStatSlider('ATK', _minAtk, (v) => setState(() => _minAtk = v)),
+                const SizedBox(height: 12),
+                _verticalStatSlider('DEF', _minDef, (v) => setState(() => _minDef = v)),
+                const SizedBox(height: 12),
+                _verticalStatSlider('STA', _minSta, (v) => setState(() => _minSta = v), min: 40),
+                const SizedBox(height: 20),
+                SizedBox(
+                  height: 54,
+                  child: FilledButton.icon(
                     onPressed: _search,
                     icon: const Icon(Icons.search),
                     label: Text(l10n.search),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const Divider(height: 1),
@@ -162,25 +164,26 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
     );
   }
 
-  Widget _statFilter(String label, double value, void Function(double) onChanged, {double min = 0}) {
-    return SizedBox(
-      width: 160,
-      child: Row(
-        children: [
-          SizedBox(width: 34, child: Text(label)),
-          Expanded(
-            child: Slider(
-              value: value,
-              min: min,
-              max: 99,
-              divisions: 99 - min.toInt(),
-              label: value.toStringAsFixed(0),
-              onChanged: onChanged,
-            ),
-          ),
-          SizedBox(width: 34, child: Text(value.toStringAsFixed(0))),
-        ],
-      ),
+  Widget _verticalStatSlider(String label, double value, void Function(double) onChanged, {double min = 0}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Text(value.toStringAsFixed(0)),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: 99,
+          divisions: 99 - min.toInt(),
+          label: value.toStringAsFixed(0),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

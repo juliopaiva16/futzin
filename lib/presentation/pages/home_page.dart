@@ -247,155 +247,142 @@ class _HomePageState extends State<HomePage> {
     final possPctA = (100.0 * possA / possTotal);
     final possPctB = 100.0 - possPctA;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.ios_share),
-            onPressed: _shareLog,
-            tooltip: l10n.exportLog,
-          ),
-          // Speed selector
-          PopupMenuButton<double>(
-            tooltip: 'Speed ${_speed}x',
-            icon: const Icon(Icons.speed),
-            onSelected: (v) {
-              setState(() => _speed = v);
-              engine?.setSpeed(v);
-            },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 1.0, child: Text('1x')),
-              PopupMenuItem(value: 1.5, child: Text('1.5x')),
-              PopupMenuItem(value: 2.0, child: Text('2x')),
-              PopupMenuItem(value: 4.0, child: Text('4x')),
-              PopupMenuItem(value: 10.0, child: Text('10x')),
-            ],
-          ),
-          if (!simRunning)
+  final appBar = AppBar(
+          title: Text(l10n.appTitle),
+          actions: [
             IconButton(
-              icon: const Icon(Icons.play_arrow),
-              onPressed: _startMatch,
-              tooltip: l10n.startMatch,
+              icon: const Icon(Icons.ios_share),
+              onPressed: _shareLog,
+              tooltip: l10n.exportLog,
             ),
-          if (simRunning)
-            IconButton(
-              icon: const Icon(Icons.stop),
-              onPressed: _stopMatch,
-              tooltip: l10n.stop,
-            ),
-        ],
-      ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: 420,
-            child: ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                TeamConfigWidget(
-                  title: teamA.name,
-                  team: teamA,
-                  simRunning: simRunning,
-                  onChanged: () async {
-                    setState(() {});
-                    await _saveState();
-                  },
-                  onSubstitute: (out, inn) {
-                    final ok = teamA.makeSub(out, inn);
-                    if (!ok) _showSnack('Invalid substitution');
-                    setState(() {});
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (simRunning) // only show opponent config during match (read-only)
-                  TeamConfigWidget(
-                    title: teamB.name,
-                    team: teamB,
-                    simRunning: simRunning,
-                    readOnly: true,
-                    onChanged: () {},
-                    onSubstitute: (out, inn) {},
-                  ),
-                if (!simRunning) ...[
-                  FilledButton.icon(
-                    onPressed: _startMatch,
-                    icon: const Icon(Icons.sports_soccer),
-                    label: Text(l10n.startButton),
-                  ),
-                ],
+            PopupMenuButton<double>(
+              tooltip: 'Speed ${_speed}x',
+              icon: const Icon(Icons.speed),
+              onSelected: (v) {
+                setState(() => _speed = v);
+                engine?.setSpeed(v);
+              },
+              itemBuilder: (ctx) => const [
+                PopupMenuItem(value: 1.0, child: Text('1x')),
+                PopupMenuItem(value: 1.5, child: Text('1.5x')),
+                PopupMenuItem(value: 2.0, child: Text('2x')),
+                PopupMenuItem(value: 4.0, child: Text('4x')),
+                PopupMenuItem(value: 10.0, child: Text('10x')),
               ],
             ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: Column(
-              children: [
-                Container(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            if (!simRunning)
+              IconButton(
+                icon: const Icon(Icons.play_arrow),
+                onPressed: _startMatch,
+                tooltip: l10n.startMatch,
+              ),
+            if (simRunning)
+              IconButton(
+                icon: const Icon(Icons.stop),
+                onPressed: _stopMatch,
+                tooltip: l10n.stop,
+              ),
+          ],
+    );
+
+  Widget scoreboard() => Container(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${teamA.name} ${last?.scoreA ?? 0} x ${last?.scoreB ?? 0} ${teamB.name}',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          if (events.isNotEmpty)
-                            Text(
-                              l10n.minuteShort((events.last.minute).toString()),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                        ],
+                      Expanded(
+                        child: Text(
+                          '${teamA.name} ${last?.scoreA ?? 0} x ${last?.scoreB ?? 0} ${teamB.name}',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${l10n.possessionLabel}: ${possPctA.toStringAsFixed(0)}% x ${possPctB.toStringAsFixed(0)}%   '
-                        '${l10n.xgLabel}: ${(last?.xgA ?? 0).toStringAsFixed(2)} x ${(last?.xgB ?? 0).toStringAsFixed(2)}',
-                      ),
+                      if (events.isNotEmpty)
+                        Text(
+                          l10n.minuteShort((events.last.minute).toString()),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${l10n.possessionLabel}: ${possPctA.toStringAsFixed(0)}% x ${possPctB.toStringAsFixed(0)}%   '
+                    '${l10n.xgLabel}: ${(last?.xgA ?? 0).toStringAsFixed(2)} x ${(last?.xgB ?? 0).toStringAsFixed(2)}',
+                  ),
+                ],
+              ),
+      );
+
+    Widget pitchAndMomentum() => Column(
+              children: [
                 SizedBox(
                   height: 220,
                   child: PitchWidget(teamA: teamA, teamB: teamB),
                 ),
-                // Momentum chart
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: MomentumChart(
                     events: events,
                     maxMinutes: 90,
                     height: 120,
                   ),
                 ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: events.length,
-                    itemBuilder: (ctx, i) {
-                      final e = events[i];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(e.text),
-                      );
-                    },
-                  ),
-                ),
               ],
+            );
+
+    Widget eventsLog() => ListView.builder(
+              controller: _scroll,
+              padding: const EdgeInsets.all(12),
+              itemCount: events.length,
+              itemBuilder: (ctx, i) {
+                final e = events[i];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text(e.text),
+                );
+              },
+            );
+    return Scaffold(
+      appBar: appBar,
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 12),
+        children: [
+          scoreboard(),
+          // Pitch on top
+          pitchAndMomentum(),
+          // Team config below pitch
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TeamConfigWidget(
+              title: teamA.name,
+              team: teamA,
+              simRunning: simRunning,
+              onChanged: () async {
+                setState(() {});
+                await _saveState();
+              },
+              onSubstitute: (out, inn) {
+                final ok = teamA.makeSub(out, inn);
+                if (!ok) _showSnack('Invalid substitution');
+                setState(() {});
+              },
             ),
+          ),
+          if (!simRunning)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FilledButton.icon(
+                onPressed: _startMatch,
+                icon: const Icon(Icons.sports_soccer),
+                label: Text(l10n.startButton),
+              ),
+            ),
+          const Divider(height: 1),
+          SizedBox(
+            height: 320,
+            child: eventsLog(),
           ),
         ],
       ),

@@ -10,33 +10,48 @@ class HubPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.hubTitle)),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/player-market');
-              },
-              child: Text(l10n.navPlayerMarket),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/team-management');
-              },
-              child: Text(l10n.navTeamManagement),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/match');
-              },
-              child: Text(l10n.navGoToMatch),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 24.0),
+        child: LayoutBuilder(
+          builder: (ctx, c) => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _navButton(
+                context,
+                label: l10n.navPlayerMarket,
+                route: '/player-market',
+              ),
+              const SizedBox(height: 24),
+              _navButton(
+                context,
+                label: l10n.navTeamManagement,
+                route: '/team-management',
+              ),
+              const SizedBox(height: 24),
+              _navButton(
+                context,
+                label: l10n.navGoToMatch,
+                route: '/match',
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+Widget _navButton(BuildContext context, {required String label, required String route}) {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: () => Navigator.pushNamed(context, route),
+      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18)),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        softWrap: true,
+        maxLines: 3,
+      ),
+    ),
+  );
 }
