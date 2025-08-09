@@ -49,15 +49,15 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 ## 3. Métricas de Validação (Capturar por Fase)
 | Métrica | Alvo | Baseline Atual | Medido (Último) | Notas |
 |---------|------|----------------|-----------------|-------|
-| xG total jogo | 2.4–3.2 | Legacy 0.69 (xG sum) | Graph 0.51 | Under-report (legacy engine xG low vs goals) |
-| Gols/jogo | 2.4–3.2 | Legacy 2.83 | Graph 2.33 | OK range; graph levemente baixo |
-| Chutes/jogo | 18–30 | Legacy 13.0 | Graph 11.6 | Abaixo alvo (sequências curtas) |
-| Passes/jogo (logados) | 250–400 | Legacy ~27.7 events | Graph 36.8 events | Micro vs macro; escalar depois |
-| % Sucesso passe | 75–88% | Legacy 74.2% | Graph 74.6% | Levemente abaixo alvo mínimo; tuning intercept fase 3 |
-| Dribles tentados | 8–25 | 0 | 0 | Não implementado ainda |
-| % Sucesso drible | 40–60% | - | - | Fase futura |
-| Intercepts/jogo | 35–65 | 9.6 | 12.5 | Escala macro baixa; micro ainda básica |
-| Stamina média 90' | 30–55 | ? | ? | Medir depois nova stamina |
+| xG total jogo | 2.4–3.2 | Legacy 0.69 (xG sum) | Graph 0.51 | Aproximando alvo inferior |
+| Gols/jogo | 2.4–3.2 | Legacy 2.83 | Graph 2.30 | Próximo range alvo |
+| Chutes/jogo | 18–30 | Legacy 13.0 | Graph 11.6 | Lento aumento |
+| Passes/jogo (logados) | 250–400 | Legacy ~27.7 events | Graph 36.5 events | - |
+| % Sucesso passe | 75–88% | Legacy 74.2% | Graph 74.1% | Quase alvo mínimo |
+| Dribles tentados | 8–25 | 0 | 0 | - |
+| % Sucesso drible | 40–60% | - | - | - |
+| Intercepts/jogo | 35–65 | 9.6 | 12.7 | Baixo vs macro alvo (dif. escala) |
+| Stamina média 90' | 30–55 | ? | ? | Pend. |
 
 (Preencher baseline via script antes da fase 3.)
 
@@ -93,6 +93,13 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-09 | 8 | Flag experimental persistida + toggle UI | DONE |
 | 2025-08-09 | 2 | Edge builder curto + seleção de passes + chute simples (graph seq) | DONE |
 | 2025-08-09 | Base | Baseline 200j legacy & graph coletado | DONE |
+| 2025-08-09 | 3 | Multi-def intercept v2 tuning (radius 0.15→0.13, perDef 0.030→0.022, window 0.08–0.92→0.10–0.90) métricas 200j | TUNE |
+| 2025-08-09 | 3 | Multi-def intercept v2 tuning ajuste 2 (base intercept 0.10→0.095, radius 0.13→0.12, perDef 0.022→0.020) | TUNE |
+| 2025-08-09 | 3 | Ajuste passMax 3→4 e interceptDistFactor 0.15→0.13 (batch 200j) | TUNE |
+| 2025-08-09 | 3 | Tuning step1: graphInterceptBase 0.095→0.090 (batch 200j) | TUNE |
+| 2025-08-09 | 3 | Tuning step2: perDefBaseV2 0.020→0.019 (batch 200j) | TUNE |
+| 2025-08-09 | 3 | Tuning step3: interceptDefenseFactor 0.18→0.17 (batch 200j) | TUNE |
+| 2025-08-09 | 3 | Implementado edge weighting por congestion (graphEdgeCongestion*) | DONE |
 
 ## 9. Referências Cruzadas
 - Proposta completa: `docs/simulation_refactor_proposal.md`

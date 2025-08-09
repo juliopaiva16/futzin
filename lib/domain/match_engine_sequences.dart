@@ -163,14 +163,42 @@ List<_SeqEvent> _buildGraphAttackSequence(
     return list.isEmpty ? atkAlive.where((p) => p != from).toList() : list;
   }
 
+  double _edgeWeight(Player from, Player to) {
+    final d = dist(from, to).clamp(0.02, 1.0);
+    // Base inverse distance weight (slightly favors shorter passes)
+    double w = 1.0 / (0.08 + d);
+    // Congestion penalty: look at defenders near mid-point of the prospective pass lane
+    final mx = ((from.x ?? 0.5) + (to.x ?? 0.5)) * 0.5;
+    final my = ((from.y ?? 0.5) + (to.y ?? 0.5)) * 0.5;
+    final rad = EngineParams.graphEdgeCongestionRadius;
+    if (rad > 0) {
+      double density = 0.0;
+      for (final defP in defAlive) {
+        final dx = (defP.x ?? 0.5) - mx;
+        final dy = (defP.y ?? 0.5) - my;
+        final dr = sqrt(dx*dx + dy*dy);
+        if (dr < rad) {
+          // Weighted contribution (closer defenders contribute more)
+            density += (1.0 - dr / rad);
+        }
+      }
+      if (density > 0) {
+        final penalty = (EngineParams.graphEdgeCongestionDefScale * density).clamp(0.0, 0.85);
+        w *= (1.0 - penalty);
+      }
+    }
+    return w <= 0 ? 1e-6 : w; // avoid zero weight
+  }
+
   Player pickPass(Player from) {
     final recs = receiversFor(from);
     if (recs.isEmpty) return from;
-    final weights = recs.map((p) {
-      final d = dist(from, p).clamp(0.02, 1.0);
-      return 1.0 / (0.08 + d);
-    }).toList();
-    final sum = weights.reduce((a, b) => a + b);
+    final weights = recs.map((p) => _edgeWeight(from, p)).toList();
+    double sum = 0.0; for (final w in weights) sum += w;
+    if (sum <= 0) {
+      // Fallback to uniform if something went wrong
+      return recs[rng.nextInt(recs.length)];
+    }
     double r = rng.nextDouble() * sum;
     for (int i = 0; i < recs.length; i++) {
       r -= weights[i];

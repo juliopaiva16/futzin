@@ -53,11 +53,11 @@ class EngineParams {
   static const double graphCloseDefenseFactor = 0.22;
   static const double graphPassTempoWidthFactor = 1.1;
   static const int    graphPassMin = 1;
-  static const int    graphPassMax = 3;
-  static const double graphInterceptBase = 0.10;
-  static const double graphInterceptDefenseFactor = 0.18;
+  static const int    graphPassMax = 4; // was 3 (allow slightly longer chains)
+  static const double graphInterceptBase = 0.090; // was 0.095 (step1 tuning)
+  static const double graphInterceptDefenseFactor = 0.17; // was 0.18 (step3 tuning)
   static const double graphInterceptPressingFactor = 0.05;
-  static const double graphInterceptDistFactor = 0.15; // weight * (d - 0.15)
+  static const double graphInterceptDistFactor = 0.13; // was 0.15 (softer distance scaling)
   static const double graphInterceptMin = 0.02;
   static const double graphInterceptMax = 0.65;
   static const double graphFoulBase = 0.05;
@@ -85,10 +85,14 @@ class EngineParams {
   static const double graphMultiInterceptMax = 0.80; // cap after aggregation
 
   // Retuned (v2) multi-defender interception (softer aggregation)
-  static const double graphMultiInterceptRadiusV2 = 0.15; // tighter lane
-  static const double graphMultiInterceptPerDefBaseV2 = 0.030; // lower base
-  static const double graphMultiInterceptDefenseScaleV2 = 0.40; // softer defense influence
-  static const double graphMultiInterceptLaneTMinV2 = 0.08; // ignore very near passer
-  static const double graphMultiInterceptLaneTMaxV2 = 0.92; // ignore very near receiver
-  static const double graphMultiInterceptMaxV2 = 0.35; // much lower cap after 1 - prod
+  static const double graphMultiInterceptRadiusV2 = 0.12; // was 0.13
+  static const double graphMultiInterceptPerDefBaseV2 = 0.019; // was 0.020 (step2 tuning)
+  static const double graphMultiInterceptDefenseScaleV2 = 0.40; // unchanged
+  static const double graphMultiInterceptLaneTMinV2 = 0.10; // narrower window (was 0.08)
+  static const double graphMultiInterceptLaneTMaxV2 = 0.90; // narrower window (was 0.92)
+  static const double graphMultiInterceptMaxV2 = 0.35; // unchanged
+
+  // Graph edge weighting (Phase 3: congestion-aware pass selection)
+  static const double graphEdgeCongestionRadius = 0.12; // radius around mid pass point
+  static const double graphEdgeCongestionDefScale = 0.35; // weight reduction per local density (capped)
 }
