@@ -40,6 +40,11 @@ class Player {
   int attack;
   int defense;
   int stamina;
+  // Extra attributes for expanded rating pentagon
+  int pace; // speed / acceleration
+  int passing; // distribution / vision
+  int technique; // dribbling / control
+  int strength; // physical / duels
   double currentStamina;
   int yellowCards;
   bool injured;
@@ -52,6 +57,10 @@ class Player {
     required this.attack,
     required this.defense,
     required this.stamina,
+    required this.pace,
+    required this.passing,
+    required this.technique,
+    required this.strength,
     double? currentStamina,
     this.yellowCards = 0,
     this.injured = false,
@@ -65,6 +74,10 @@ class Player {
     attack: attack,
     defense: defense,
     stamina: stamina,
+    pace: pace,
+    passing: passing,
+    technique: technique,
+    strength: strength,
     currentStamina: currentStamina,
     yellowCards: yellowCards,
     injured: injured,
@@ -78,6 +91,10 @@ class Player {
     'attack': attack,
     'defense': defense,
     'stamina': stamina,
+  'pace': pace,
+  'passing': passing,
+  'technique': technique,
+  'strength': strength,
   };
 
   static Player fromJson(Map<String, dynamic> j) => Player(
@@ -87,6 +104,10 @@ class Player {
     attack: j['attack'],
     defense: j['defense'],
     stamina: j['stamina'],
+  pace: (j['pace'] ?? 60),
+  passing: (j['passing'] ?? 60),
+  technique: (j['technique'] ?? 60),
+  strength: (j['strength'] ?? 60),
   );
 }
 
@@ -188,6 +209,10 @@ class TeamConfig {
       attack: 1,
       defense: 1,
       stamina: 1,
+  pace: 1,
+  passing: 1,
+  technique: 1,
+  strength: 1,
     ),
   );
 

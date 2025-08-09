@@ -127,6 +127,10 @@ class _HomePageState extends State<HomePage> {
           attack: r(20, 45),
           defense: r(65, 90),
           stamina: r(60, 90),
+          pace: r(30, 55),
+          passing: r(40, 75),
+          technique: r(35, 70),
+          strength: r(55, 90),
         ),
       );
     }
@@ -139,6 +143,10 @@ class _HomePageState extends State<HomePage> {
           attack: r(40, 70),
           defense: r(55, 90),
           stamina: r(60, 95),
+          pace: r(50, 80),
+          passing: r(45, 75),
+          technique: r(40, 75),
+          strength: r(60, 95),
         ),
       );
     }
@@ -151,6 +159,10 @@ class _HomePageState extends State<HomePage> {
           attack: r(55, 85),
           defense: r(45, 80),
           stamina: r(65, 95),
+          pace: r(55, 90),
+          passing: r(60, 95),
+          technique: r(60, 95),
+          strength: r(45, 80),
         ),
       );
     }
@@ -163,6 +175,10 @@ class _HomePageState extends State<HomePage> {
           attack: r(65, 95),
           defense: r(35, 65),
           stamina: r(60, 90),
+          pace: r(65, 99),
+          passing: r(55, 90),
+          technique: r(65, 99),
+          strength: r(45, 80),
         ),
       );
     }

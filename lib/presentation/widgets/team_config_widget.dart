@@ -324,7 +324,7 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
           title: Text(
             "${p.name} (${positionLabel(p.pos)}) ${status.isNotEmpty ? '[$status]' : ''}",
           ),
-          subtitle: Text("ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}"),
+          subtitle: Text("ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}  PAC ${p.pace} PAS ${p.passing} TEC ${p.technique} STR ${p.strength}"),
           trailing: selected
               ? Text(
                   "STA ${p.currentStamina.toStringAsFixed(0)}",
@@ -339,9 +339,13 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
   }
 
   Future<void> _editPlayer(Player p) async {
-    int atk = p.attack;
-    int def = p.defense;
-    int sta = p.stamina;
+  int atk = p.attack;
+  int def = p.defense;
+  int sta = p.stamina;
+  int pace = p.pace;
+  int passing = p.passing;
+  int technique = p.technique;
+  int strength = p.strength;
     Position pos = p.pos;
     await showDialog(
       context: context,
@@ -371,6 +375,27 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
                     _sliderRow('ATK', atk, (v) => setS(() => atk = v)),
                     _sliderRow('DEF', def, (v) => setS(() => def = v)),
                     _sliderRow('STA', sta, (v) => setS(() => sta = v)),
+                    const Divider(),
+                    _sliderRow('PAC', pace, (v) => setS(() => pace = v)),
+                    _sliderRow('PAS', passing, (v) => setS(() => passing = v)),
+                    _sliderRow('TEC', technique, (v) => setS(() => technique = v)),
+                    _sliderRow('STR', strength, (v) => setS(() => strength = v)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 140,
+                      child: CustomPaint(
+                        painter: _PentagonPainter(
+                          values: [
+                            atk.toDouble(),
+                            pace.toDouble(),
+                            passing.toDouble(),
+                            technique.toDouble(),
+                            strength.toDouble(),
+                          ],
+                        ),
+                        child: const Center(child: Text('Radar')),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -387,6 +412,10 @@ class _TeamConfigWidgetState extends State<TeamConfigWidget> {
                   p.attack = atk;
                   p.defense = def;
                   p.stamina = sta;
+                  p.pace = pace;
+                  p.passing = passing;
+                  p.technique = technique;
+                  p.strength = strength;
                   p.pos = pos;
                   p.currentStamina = math.min(p.currentStamina, sta.toDouble());
                   widget.onChanged();
@@ -437,6 +466,52 @@ class SubDialog extends StatefulWidget {
 
   @override
   State<SubDialog> createState() => _SubDialogState();
+}
+
+class _PentagonPainter extends CustomPainter {
+  final List<double> values; // expect length 5, 0-99
+  _PentagonPainter({required this.values});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) * 0.45;
+    final paintGrid = Paint()
+      ..color = Colors.grey.withValues(alpha: 120)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final paintFill = Paint()
+      ..color = Colors.blue.withValues(alpha: 90)
+      ..style = PaintingStyle.fill;
+
+    List<Offset> polygon(double scale) {
+      return List.generate(5, (i) {
+        final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+        return center + Offset(math.cos(angle), math.sin(angle)) * radius * scale;
+      });
+    }
+
+    // Draw 3 concentric pentagons
+    for (final s in [1.0, 0.66, 0.33]) {
+      final pts = polygon(s);
+      final path = Path()..addPolygon(pts, true);
+      canvas.drawPath(path, paintGrid);
+    }
+
+    // Data polygon
+    if (values.length == 5) {
+      final pts = List.generate(5, (i) {
+        final v = (values[i].clamp(0, 99)) / 99.0;
+        final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+        return center + Offset(math.cos(angle), math.sin(angle)) * radius * v;
+      });
+      final path = Path()..addPolygon(pts, true);
+      canvas.drawPath(path, paintFill);
+      canvas.drawPath(path, paintGrid);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PentagonPainter oldDelegate) => oldDelegate.values != values;
 }
 
 class _SubDialogState extends State<SubDialog> {

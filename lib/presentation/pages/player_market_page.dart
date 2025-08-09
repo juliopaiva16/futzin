@@ -39,6 +39,10 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
         attack: atk,
         defense: def,
         stamina: sta,
+  pace: 40 + rng.nextInt(60),
+  passing: 40 + rng.nextInt(60),
+  technique: 40 + rng.nextInt(60),
+  strength: 40 + rng.nextInt(60),
       );
     }).where((p) =>
         (p.attack >= _minAtk) &&
@@ -150,7 +154,7 @@ class _PlayerMarketPageState extends State<PlayerMarketPage> {
                       return ListTile(
                         leading: CircleAvatar(child: Text(positionShort(p.pos))),
                         title: Text(p.name),
-                        subtitle: Text('ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}'),
+                        subtitle: Text('ATK ${p.attack}  DEF ${p.defense}  STA ${p.stamina}  PAC ${p.pace} PAS ${p.passing} TEC ${p.technique} STR ${p.strength}'),
                         trailing: FilledButton(
                           onPressed: () => _hire(p),
                           child: Text(l10n.hire),
