@@ -45,13 +45,19 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 - [x] Habilidades finalização (FIN) aplicadas pGoal pós cálculo (sem duplicar xG).
 - [x] Habilidades defensivas parciais (WALL intercept rel, CAT save/pGoal + rating parcial, CAP team adj).
 - [x] Habilidades stamina (ENG) reduzindo decay básico (fase parcial - restante modelo stamina fase 6).
-- [ ] Outras habilidades planeadas (MRK, AER, REF, COM, HDR, CLT, B2B, SPR, SWS) – não implementadas.
 - [x] Script batch expandido (métricas detalhadas: tipos de passe, drible, launch, habilidades).
-- [ ] Test unit: action selection monotonicidade.
-- [ ] Test unit: intercept multi-defensor monotônico (#defs ↑ → P_intercept ↑).
-- [ ] Test unit: efeitos VIS/PAS/FIN/DRB estatisticamente (> threshold relativo) em cenários fixos.
-- [ ] Atualizar momentum cálculo para micro-ticks (agregado).
-- [ ] Documentar parâmetros ajustados no final.
+
+- Ordem recomendada para próximos itens
+1. [ ] (6.3) Centralizar cálculo attr efetivo (`effectiveAttr`) 
+2. [ ] (6.6) Métricas avançadas de stamina (Q1..Q4, ENG vs non-ENG) no batch
+3. [ ] (6.4) Recalibrar peso stamina (0.40→0.35–0.38 se necessário) após métricas
+4. [ ] (6.5) Retune % passe (ajustar intercept/pesos short) visando 75–88%
+5. [ ] Outras habilidades (MRK, AER, REF, COM, HDR, CLT, B2B, SPR, SWS)
+6. [ ] Atualizar momentum cálculo para micro-ticks (agregado)
+7. [ ] Documentar parâmetros ajustados finais (fase 6 baseline)
+8. [ ] Test unit: action selection monotonicidade
+9. [ ] Test unit: intercept multi-defensor monotônico (#defs ↑ → P_intercept ↑)
+10. [ ] Test unit: efeitos VIS/PAS/FIN/DRB (redução/elevação relativa)
 
 ## 3. Métricas de Validação (Capturar por Fase)
 | Métrica | Alvo | Baseline Atual | Medido (Último) | Notas |
@@ -133,4 +139,4 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 (Manter este arquivo enxuto; detalhes conceituais permanecem na proposta.)
 
 ## Próxima Ação Imediata
-- Atribuir habilidades aleatórias controladas no batch para gerar métricas e validar ENG retenção, VIS intercept ↓, FIN pGoal ↑.
+- Investigar por que ENG final < non-ENG (provável baixa amostra GK/roles) antes de recalibrar peso stamina (6.4).
