@@ -10,7 +10,7 @@ import '../../domain/entities.dart';
 // Removed edit dialog; using local painter for radar
 
 class PlayerMarketPage extends StatefulWidget {
-  const PlayerMarketPage({Key? key}) : super(key: key);
+  const PlayerMarketPage({super.key});
 
   @override
   State<PlayerMarketPage> createState() => _PlayerMarketPageState();

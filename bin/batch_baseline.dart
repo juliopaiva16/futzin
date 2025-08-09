@@ -32,6 +32,13 @@ class _StubMessages implements MatchMessages {
   @override String subYellowRisk(String team, String out, String inn) => 'Sub card risk';
   @override String secondYellow(String player) => 'Second yellow $player';
   @override String endMatch() => 'Full time';
+  @override String dribble(String player, String defender) => '$player vs $defender';
+  @override String dribbleSuccess(String player) => '$player dribbles past!';
+  @override String dribbleFail(String player) => '$player dispossessed';
+  @override String longPass(String from, String to) => '$from long to $to';
+  @override String backPass(String from, String to) => '$from back to $to';
+  @override String holdUp(String player) => '$player holds it up';
+  @override String launchForward(String from) => '$from launches forward';
 }
 
 // Generate a random player with basic attributes.
@@ -59,9 +66,15 @@ TeamConfig _rndTeam(Random r, String name) {
   final formation = Formation.formations.firstWhere((f) => f.name == '4-2-3-1', orElse: () => Formation.formations.first);
   final squad = <Player>[];
   squad.add(_rndPlayer(r, 0, Position.GK));
-  for (int i = 1; i <= 4; i++) squad.add(_rndPlayer(r, i, Position.DEF));
-  for (int i = 5; i <= 9; i++) squad.add(_rndPlayer(r, i, Position.MID));
-  for (int i = 10; i <= 11; i++) squad.add(_rndPlayer(r, i, Position.FWD));
+  for (int i = 1; i <= 4; i++) {
+    squad.add(_rndPlayer(r, i, Position.DEF));
+  }
+  for (int i = 5; i <= 9; i++) {
+    squad.add(_rndPlayer(r, i, Position.MID));
+  }
+  for (int i = 10; i <= 11; i++) {
+    squad.add(_rndPlayer(r, i, Position.FWD));
+  }
   final team = TeamConfig(
     name: name,
     formation: formation,
@@ -79,28 +92,91 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
   final engine = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: seed, useGraph: useGraph);
   engine.startManual();
   int shots = 0;
-  int passes = 0; // successful passes (logged)
-  int intercepts = 0; // intercepted attempts
+  int passesShort = 0; // successful short passes (->)
+  int passesLong = 0;  // successful long passes
+  int passesBack = 0;  // successful back passes
+  int intercepts = 0;  // intercepted attempts (any type)
+  int dribbleAttempts = 0;
+  int dribbleSuccess = 0;
+  int dribbleFail = 0;
+  int holds = 0;
+  int launchAttempts = 0;
+  int launchSuccess = 0;
+  int launchFail = 0;
+  bool pendingLaunch = false; // flag to evaluate outcome on next event
+
   final sub = engine.stream.listen((e) {
+    final txt = e.text.toLowerCase();
     if (e.kind == MatchEventKind.shot) shots++;
-    if (e.text.contains('->')) passes++;
-    if (e.text.toLowerCase().contains('intercept')) intercepts++;
+
+    // Dribble tracking
+    if (txt.contains(' vs ')) dribbleAttempts++;
+    if (txt.contains('dribbles past')) dribbleSuccess++;
+    if (txt.contains('dispossessed')) dribbleFail++;
+
+    // Hold tracking
+    if (txt.contains('holds it up')) holds++;
+
+    // Launch tracking
+    if (txt.contains('launches forward')) {
+      launchAttempts++; pendingLaunch = true; return; // evaluate next event
+    }
+    if (pendingLaunch) {
+      if (txt.contains('intercept')) {
+        launchFail++;
+      } else {
+        launchSuccess++; // retained (any non-intercept event)
+      }
+      pendingLaunch = false;
+    }
+
+    // Pass classification
+    if (txt.contains(' long to ')) {
+      passesLong++; return; // counted as pass
+    }
+    if (txt.contains(' back to ')) {
+      passesBack++; return; // counted as pass
+    }
+    if (e.text.contains('->')) {
+      passesShort++; return; // short pass
+    }
+
+    if (txt.contains('intercept')) intercepts++;
   });
   while (engine.isRunning) {
     engine.advanceMinute();
   }
   await Future<void>.delayed(const Duration(milliseconds: 10));
   await sub.cancel();
-  final attempts = passes + intercepts;
+  if (pendingLaunch) { // if match ended immediately after a launch treat as fail (lost context)
+    launchFail++;
+    pendingLaunch = false;
+  }
+  final passesAll = passesShort + passesLong + passesBack;
+  final attemptsAll = passesAll + intercepts; // approximation (cannot separate type-specific failed attempts)
+  final passesLegacyMetric = passesShort; // legacy behaviour for comparison
+  final attemptsLegacyMetric = passesLegacyMetric + intercepts;
   return {
     'scoreA': engine.scoreA,
     'scoreB': engine.scoreB,
     'xgA': engine.xgA,
     'xgB': engine.xgB,
     'shots': shots,
-    'passes': passes,
+    'passesShort': passesShort,
+    'passesLong': passesLong,
+    'passesBack': passesBack,
+    'passesAll': passesAll,
     'intercepts': intercepts,
-    'passAttempts': attempts,
+    'passAttemptsAll': attemptsAll,
+    'passesLegacy': passesLegacyMetric,
+    'passAttemptsLegacy': attemptsLegacyMetric,
+    'dribbleAttempts': dribbleAttempts,
+    'dribbleSuccess': dribbleSuccess,
+    'dribbleFail': dribbleFail,
+    'holds': holds,
+    'launchAttempts': launchAttempts,
+    'launchSuccess': launchSuccess,
+    'launchFail': launchFail,
   };
 }
 
@@ -109,20 +185,45 @@ Future<void> main(List<String> args) async {
   final modeArg = args.length > 1 ? args[1] : 'legacy';
   final useGraph = modeArg.toLowerCase().startsWith('g');
   final results = <Map<String, dynamic>>[];
-  int totalPasses = 0;
-  int totalAttempts = 0;
+  int totalShort = 0, totalLong = 0, totalBack = 0, totalAllPass = 0;
+  int totalIntercepts = 0;
+  int totalLegacyPass = 0, totalLegacyAttempts = 0;
+  int totalAttemptsAll = 0;
+  int totalDribAtt = 0, totalDribSucc = 0, totalDribFail = 0;
+  int totalHolds = 0;
+  int totalLaunchAtt = 0, totalLaunchSucc = 0, totalLaunchFail = 0;
   for (int i = 0; i < games; i++) {
     final res = await simulateOne(1000 + i, useGraph);
     results.add(res);
-    totalPasses += (res['passes'] as int);
-    totalAttempts += (res['passAttempts'] as int);
+    totalShort += res['passesShort'] as int;
+    totalLong += res['passesLong'] as int;
+    totalBack += res['passesBack'] as int;
+    totalAllPass += res['passesAll'] as int;
+    totalIntercepts += res['intercepts'] as int;
+    totalAttemptsAll += res['passAttemptsAll'] as int;
+    totalLegacyPass += res['passesLegacy'] as int;
+    totalLegacyAttempts += res['passAttemptsLegacy'] as int;
+    totalDribAtt += res['dribbleAttempts'] as int;
+    totalDribSucc += res['dribbleSuccess'] as int;
+    totalDribFail += res['dribbleFail'] as int;
+    totalHolds += res['holds'] as int;
+    totalLaunchAtt += res['launchAttempts'] as int;
+    totalLaunchSucc += res['launchSuccess'] as int;
+    totalLaunchFail += res['launchFail'] as int;
   }
   double avg(String k) => results.map((m) => (m[k] as num).toDouble()).fold(0.0, (a, b) => a + b) / results.length;
   final avgXg = avg('xgA') + avg('xgB');
   final avgGoals = avg('scoreA') + avg('scoreB');
-  final passSuccess = totalAttempts == 0 ? 0.0 : totalPasses / totalAttempts;
+  final passSuccessAll = totalAttemptsAll == 0 ? 0.0 : totalAllPass / totalAttemptsAll;
+  final passSuccessLegacy = totalLegacyAttempts == 0 ? 0.0 : totalLegacyPass / totalLegacyAttempts; // previous method
+  final dribbleSuccRate = totalDribAtt == 0 ? 0.0 : totalDribSucc / totalDribAtt;
+  final launchRetainRate = totalLaunchAtt == 0 ? 0.0 : totalLaunchSucc / totalLaunchAtt;
   print('Games: $games  Mode: ${useGraph ? 'GRAPH' : 'LEGACY'}');
   print('Avg Goals: ${avgGoals.toStringAsFixed(2)}  Avg xG: ${avgXg.toStringAsFixed(2)}');
-  print('Avg Shots: ${avg('shots').toStringAsFixed(1)}  Pass events: ${avg('passes').toStringAsFixed(1)}  Intercepts: ${avg('intercepts').toStringAsFixed(1)}');
-  print('Pass Success: ${(passSuccess * 100).toStringAsFixed(1)}% (passes=${totalPasses}, attempts=${totalAttempts})');
+  print('Avg Shots: ${avg('shots').toStringAsFixed(1)}');
+  print('Passes (short/long/back): $totalShort/$totalLong/$totalBack  Intercepts: $totalIntercepts');
+  print('Pass Success (ALL): ${(passSuccessAll * 100).toStringAsFixed(1)}%  (passes=$totalAllPass, attempts=$totalAttemptsAll)');
+  print('Pass Success (LEGACY short only): ${(passSuccessLegacy * 100).toStringAsFixed(1)}%  (passes=$totalLegacyPass, attempts=$totalLegacyAttempts)');
+  print('Dribbles: attempts=$totalDribAtt success=$totalDribSucc fail=$totalDribFail  SuccessRate=${(dribbleSuccRate*100).toStringAsFixed(1)}%');
+  print('Holds: $totalHolds  Launches: $totalLaunchAtt retain=$totalLaunchSucc fail=$totalLaunchFail  RetainRate=${(launchRetainRate*100).toStringAsFixed(1)}%');
 }

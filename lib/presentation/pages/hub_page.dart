@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/localization/app_localizations.dart';
 
 class HubPage extends StatelessWidget {
-  const HubPage({Key? key}) : super(key: key);
+  const HubPage({super.key});
 
   @override
   Widget build(BuildContext context) {

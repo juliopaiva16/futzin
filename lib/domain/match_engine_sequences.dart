@@ -1,5 +1,7 @@
 part of 'match_engine.dart';
 
+enum _GraphAction { shortPass, dribble, longPass, backPass, hold, launch }
+
 // Legacy attacking sequence builder
 List<_SeqEvent> _buildAttackSequence(
   MatchEngine eng,
@@ -163,7 +165,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
     return list.isEmpty ? atkAlive.where((p) => p != from).toList() : list;
   }
 
-  double _edgeWeight(Player from, Player to) {
+  double edgeWeight(Player from, Player to) {
     final d = dist(from, to).clamp(0.02, 1.0);
     // Base inverse distance weight (slightly favors shorter passes)
     double w = 1.0 / (0.08 + d);
@@ -193,8 +195,10 @@ List<_SeqEvent> _buildGraphAttackSequence(
   Player pickPass(Player from) {
     final recs = receiversFor(from);
     if (recs.isEmpty) return from;
-    final weights = recs.map((p) => _edgeWeight(from, p)).toList();
-    double sum = 0.0; for (final w in weights) sum += w;
+    final weights = recs.map((p) => edgeWeight(from, p)).toList();
+    double sum = 0.0; for (final w in weights) {
+      sum += w;
+    }
     if (sum <= 0) {
       // Fallback to uniform if something went wrong
       return recs[rng.nextInt(recs.length)];
@@ -258,33 +262,152 @@ List<_SeqEvent> _buildGraphAttackSequence(
   }
   final maxPassesBase = 1 + ((atk.tactics.tempo + atk.tactics.width) * EngineParams.graphPassTempoWidthFactor).round();
   final maxPasses = max(EngineParams.graphPassMin, min(EngineParams.graphPassMax, maxPassesBase));
+  bool holdBuff = false; // increases weight of short safe passes next iteration after a hold
+  bool adaptiveBoost = false; // new adaptive boost flag
+  int usedDribbles = 0; int usedLong = 0;
   for (int i = 0; i < maxPasses; i++) {
-    final rec = pickPass(carrier);
+    // Phase 4: decide action
+    _GraphAction chosen = _GraphAction.shortPass;
+    // Gather context
+    final recsAll = receiversFor(carrier);
+    final shortRecs = recsAll.where((p) => dist(carrier, p) <= EngineParams.passShortMaxDist).toList();
+    final longRecs = recsAll.where((p) => dist(carrier, p) >= EngineParams.graphLongPassMinDist).toList();
+    // Find nearest defender for dribble context
+    Player? nearestDef; double nearestDist = 999;
+    for (final dfd in defAlive) {
+      final dd = dist(carrier, dfd);
+      if (dd < nearestDist) { nearestDist = dd; nearestDef = dfd; }
+    }
+    // Build weights
+    double wShort = EngineParams.graphActionShortBase + (holdBuff ? EngineParams.graphHoldExtraPassWeight : 0.0) + (adaptiveBoost ? EngineParams.graphAdaptiveShortBoost : 0.0);
+    double wDribble = 0.0;
+    if (usedDribbles < EngineParams.graphActionMaxDribblesPerSeq && nearestDist < EngineParams.graphDribbleMaxDist && nearestDef != null && shortRecs.isNotEmpty) {
+      wDribble = EngineParams.graphActionDribbleBase * (1.0 + (carrier.technique / 150.0));
+    }
+    double wLong = (usedLong < EngineParams.graphActionMaxLongPerSeq && longRecs.isNotEmpty) ? EngineParams.graphActionLongPassBase : 0.0;
+    double wBack = 0.0;
+    if (shortRecs.isNotEmpty) {
+      // Back pass candidate if exists someone behind (x smaller if attackingTeamA else larger)
+      final backCandidates = shortRecs.where((p) => attackingTeamA ? (p.x ?? 0.5) < (carrier.x ?? 0.5) : (p.x ?? 0.5) > (carrier.x ?? 0.5)).toList();
+      if (backCandidates.isNotEmpty) wBack = EngineParams.graphActionBackPassBase;
+    }
+    double wHold = EngineParams.graphActionHoldBase;
+    double wLaunch = 0.0;
+    if (recsAll.isEmpty || (shortRecs.isEmpty && nearestDist < EngineParams.graphLaunchTriggerDist)) {
+      wLaunch = EngineParams.graphActionLaunchBase;
+    }
+    final totalW = wShort + wDribble + wLong + wBack + wHold + wLaunch;
+    double pick = rng.nextDouble() * totalW;
+    if ((pick -= wShort) <= 0) { chosen = _GraphAction.shortPass; }
+    else if ((pick -= wDribble) <= 0) { chosen = _GraphAction.dribble; }
+    else if ((pick -= wLong) <= 0) { chosen = _GraphAction.longPass; }
+    else if ((pick -= wBack) <= 0) { chosen = _GraphAction.backPass; }
+    else if ((pick -= wHold) <= 0) { chosen = _GraphAction.hold; }
+    else { chosen = _GraphAction.launch; }
+
+    holdBuff = false; // reset
+    adaptiveBoost = false; // reset each iteration after applied
+
+    if (chosen == _GraphAction.hold) {
+      seq.add(_SeqEvent.text(messages.holdUp(carrier.name)));
+      holdBuff = true;
+      continue; // consume one iteration without moving the ball (time abstracted)
+    }
+    if (chosen == _GraphAction.launch) {
+      seq.add(_SeqEvent.text(messages.launchForward(carrier.name)));
+      if (rng.nextDouble() < EngineParams.graphLaunchWinProb) {
+        // pick a random forward-ish teammate
+        final forward = recsAll.isNotEmpty ? recsAll[rng.nextInt(recsAll.length)] : carrier;
+        carrier = forward;
+        adaptiveBoost = true; // reward retaining after risky launch
+      } else {
+        final interceptor = pickDefender();
+        seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+        return seq;
+      }
+      continue;
+    }
+    if (chosen == _GraphAction.dribble && nearestDef != null) {
+      usedDribbles++;
+      final paceDiff = (carrier.pace - nearestDef.pace).toDouble();
+      double pSuccess = EngineParams.graphDribbleSuccessBase + (carrier.technique / 100.0) * EngineParams.graphDribbleAttackSkillScale + (paceDiff / 100.0) * EngineParams.graphDribblePaceScale - (nearestDef.defense / 100.0) * EngineParams.graphDribbleDefSkillScale;
+      pSuccess = pSuccess.clamp(EngineParams.graphDribbleSuccessMin, EngineParams.graphDribbleSuccessMax);
+      seq.add(_SeqEvent.text(messages.dribble(carrier.name, nearestDef.name)));
+      if (rng.nextDouble() < pSuccess) {
+        seq.add(_SeqEvent.text(messages.dribbleSuccess(carrier.name)));
+        // small x advancement if possible
+        final advance = (attackingTeamA ? 0.03 : -0.03);
+        carrier.x = ((carrier.x ?? 0.5) + advance).clamp(0.0, 1.0);
+        adaptiveBoost = true; // next decision favor safe consolidation
+      } else {
+        seq.add(_SeqEvent.text(messages.dribbleFail(carrier.name)));
+        final interceptor = nearestDef;
+        seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+        return seq;
+      }
+      continue;
+    }
+
+    // Pick receiver according to action
+    Player rec;
+    if (chosen == _GraphAction.backPass) {
+      final candidates = shortRecs.where((p) => attackingTeamA ? (p.x ?? 0.5) < (carrier.x ?? 0.5) : (p.x ?? 0.5) > (carrier.x ?? 0.5)).toList();
+      rec = candidates.isNotEmpty ? candidates[rng.nextInt(candidates.length)] : (shortRecs.isNotEmpty ? shortRecs[rng.nextInt(shortRecs.length)] : recsAll[rng.nextInt(recsAll.length)]);
+    } else if (chosen == _GraphAction.longPass) {
+      usedLong++;
+      final candidates = longRecs.isNotEmpty ? longRecs : recsAll;
+      rec = candidates[rng.nextInt(candidates.length)];
+    } else { // shortPass (default)
+      rec = pickPass(carrier);
+    }
+
     final d = dist(carrier, rec).clamp(0.05, 1.0);
-    final interceptBase = EngineParams.graphInterceptBase +
-        EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) +
-        EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
+    bool longAttempt = chosen == _GraphAction.longPass;
+    double interceptBase = EngineParams.graphInterceptBase + EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) + EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
+    if (chosen == _GraphAction.backPass) interceptBase *= EngineParams.graphBackPassInterceptFactor; // safer
+
     final interceptChanceSingle = (interceptBase + EngineParams.graphInterceptDistFactor * (d - 0.15));
     final multiProb = multiDefInterceptProb(carrier, rec);
-    final interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    double interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+
+    if (longAttempt) {
+      // Adjust success for long pass model: treat intercept chance as (1 - successLong)
+      final baseSuccess = EngineParams.graphLongPassBaseSuccess;
+      final norm = ((d - EngineParams.graphLongPassMinDist) / (EngineParams.passLongMaxDist - EngineParams.graphLongPassMinDist)).clamp(0.0, 1.0);
+      final distPenalty = 1.0 - EngineParams.graphLongPassDistPenalty * norm;
+      double success = (baseSuccess * distPenalty) - EngineParams.graphLongPassDefenseContest * multiProb;
+      success = success.clamp(0.25, 0.93);
+      final longIntercept = (1.0 - success).clamp(0.0, 1.0);
+      // Blend with existing intercept (weight long model 70%)
+      interceptChance = (0.30 * interceptChance + 0.70 * longIntercept).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    }
+
     if (rng.nextDouble() < interceptChance) {
       final interceptor = pickDefender();
       seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
       return seq;
     }
-    seq.add(_SeqEvent.text(messages.pass(carrier.name, rec.name)));
+
+    // Emit event text depending on action
+    if (longAttempt) {
+      seq.add(_SeqEvent.text(messages.longPass(carrier.name, rec.name))); // contains 'pass'
+    } else if (chosen == _GraphAction.backPass) {
+      seq.add(_SeqEvent.text(messages.backPass(carrier.name, rec.name))); // contains 'pass'
+    } else {
+      seq.add(_SeqEvent.text(messages.pass(carrier.name, rec.name)));
+    }
+
     carrier = rec;
+    // Foul chance unchanged for now (future: dribble specific foul)
     final foulChance = EngineParams.graphFoulBase + EngineParams.graphFoulPressingFactor * def.tactics.pressing;
     if (rng.nextDouble() < foulChance) {
       final offender = pickDefender();
       seq.add(_SeqEvent.text(messages.lateFoul(def.name)));
       final redProb = EngineParams.graphRedBase + EngineParams.graphRedTempoFactor * atk.tactics.tempo;
       if (rng.nextDouble() < redProb) {
-        seq.add(_SeqEvent.card(messages.foulRed(offender.name, def.name), offender,
-            _CardType.red));
+        seq.add(_SeqEvent.card(messages.foulRed(offender.name, def.name), offender, _CardType.red));
       } else {
-        seq.add(_SeqEvent.card(messages.foulYellow(offender.name, def.name),
-            offender, _CardType.yellow));
+        seq.add(_SeqEvent.card(messages.foulYellow(offender.name, def.name), offender, _CardType.yellow));
       }
       return seq;
     }

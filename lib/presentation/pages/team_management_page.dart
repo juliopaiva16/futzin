@@ -8,7 +8,7 @@ import '../../domain/entities.dart';
 import 'dart:math' as math; // for radar angles
 
 class TeamManagementPage extends StatefulWidget {
-  const TeamManagementPage({Key? key}) : super(key: key);
+  const TeamManagementPage({super.key});
 
   @override
   State<TeamManagementPage> createState() => _TeamManagementPageState();
@@ -260,8 +260,12 @@ class _TeamManagementLayoutState extends State<_TeamManagementLayout> {
     if (za == zb) return;
     setState(() {
       // Remove both
-      if (za == 'starters') widget.team.selectedIds.remove(a.id); else if (za == 'bench') benchIds.remove(a.id);
-      if (zb == 'starters') widget.team.selectedIds.remove(b.id); else if (zb == 'bench') benchIds.remove(b.id);
+      if (za == 'starters') {
+        widget.team.selectedIds.remove(a.id);
+      } else if (za == 'bench') benchIds.remove(a.id);
+      if (zb == 'starters') {
+        widget.team.selectedIds.remove(b.id);
+      } else if (zb == 'bench') benchIds.remove(b.id);
       // Try add swapped
       bool ok = true;
       if (za == 'starters') {
@@ -280,8 +284,12 @@ class _TeamManagementLayoutState extends State<_TeamManagementLayout> {
         // Clear sets and re-add original membership
         widget.team.selectedIds.remove(b.id); benchIds.remove(b.id);
         widget.team.selectedIds.remove(a.id); benchIds.remove(a.id);
-        if (za == 'starters') widget.team.selectedIds.add(a.id); else if (za == 'bench') benchIds.add(a.id);
-        if (zb == 'starters') widget.team.selectedIds.add(b.id); else if (zb == 'bench') benchIds.add(b.id);
+        if (za == 'starters') {
+          widget.team.selectedIds.add(a.id);
+        } else if (za == 'bench') benchIds.add(a.id);
+        if (zb == 'starters') {
+          widget.team.selectedIds.add(b.id);
+        } else if (zb == 'bench') benchIds.add(b.id);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Troca inválida para a formação.')));
       } else {
         widget.onChanged();

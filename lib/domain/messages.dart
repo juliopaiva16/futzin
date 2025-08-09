@@ -37,4 +37,12 @@ abstract class MatchMessages {
 
   String secondYellow(String player);
   String endMatch();
+
+  String dribble(String player, String defender); // player attempts dribble vs defender
+  String dribbleSuccess(String player); // successful dribble
+  String dribbleFail(String player); // failed dribble lost ball
+  String longPass(String from, String to); // attempted longer pass
+  String backPass(String from, String to); // safety/backwards pass
+  String holdUp(String player); // player holds the ball
+  String launchForward(String from); // long launch forward (50/50)
 }

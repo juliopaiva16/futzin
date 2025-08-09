@@ -528,4 +528,18 @@ class _FlutterMatchMessages implements MatchMessages {
   @override
   String subYellowRisk(String team, String out, String inn) =>
       'Substitution $team: $out (booked) out, $inn in.';
+  @override
+  String dribble(String player, String defender) => '$player takes on $defender.';
+  @override
+  String dribbleSuccess(String player) => '$player beats the marker!';
+  @override
+  String dribbleFail(String player) => '$player loses control.';
+  @override
+  String longPass(String from, String to) => '$from launches long to $to.';
+  @override
+  String backPass(String from, String to) => '$from recycles to $to.';
+  @override
+  String holdUp(String player) => '$player holds up the ball.';
+  @override
+  String launchForward(String from) => '$from sends it long!';
 }

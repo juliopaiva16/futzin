@@ -1,5 +1,6 @@
 /// Experimental graph-based match engine (Phase 1 stub).
 /// For now it only provides coordinate layout helpers; no simulation logic.
+library;
 import 'entities.dart';
 
 /// Simple layout generator that assigns (x,y) normalized coordinates to players

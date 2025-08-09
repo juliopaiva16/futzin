@@ -100,6 +100,9 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-09 | 3 | Tuning step2: perDefBaseV2 0.020→0.019 (batch 200j) | TUNE |
 | 2025-08-09 | 3 | Tuning step3: interceptDefenseFactor 0.18→0.17 (batch 200j) | TUNE |
 | 2025-08-09 | 3 | Implementado edge weighting por congestion (graphEdgeCongestion*) | DONE |
+| 2025-08-09 | 4 | Introdução ações (drible,long,back,hold,launch) - regressão métricas (passes↓, sucesso↓) | TUNE |
+| 2025-08-09 | 4 | Recalibração inicial ações (redução pesos long/launch, blend intercept long) | TUNE |
+| 2025-08-09 | 4 | Recalibração 2 (short weight + long model soften) resultados 200j | TUNE |
 
 ## 9. Referências Cruzadas
 - Proposta completa: `docs/simulation_refactor_proposal.md`
@@ -107,3 +110,6 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 
 ---
 (Manter este arquivo enxuto; detalhes conceituais permanecem na proposta.)
+
+## Próxima Ação Imediata
+- Ainda longe 75%. Próximo: reduzir drible/long ainda mais e limitar ações não-pass por sequência. Avaliar cap de 1 drible e 1 long por seq antes de chute.
