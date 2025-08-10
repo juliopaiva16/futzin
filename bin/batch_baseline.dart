@@ -283,10 +283,11 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
   final prevStam = <String,double>{
     for (final p in [...teamA.selected, ...teamB.selected]) p.id : p.currentStamina
   };
+  int minuteSamples = 0;
   while (engine.isRunning) {
     engine.advanceMinute();
     final m = engine.minute;
-    if (m >= 1 && m <= 90) {
+  if (m >= 1 && m <= 90) {
       final all = [...teamA.selected, ...teamB.selected];
       for (final p in all) {
         final st = p.currentStamina;
@@ -297,10 +298,10 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
           if (p.hasAbility('ENG')) { engDecaySum += drop; engDecayTicks++; } else { nonEngDecaySum += drop; nonEngDecayTicks++; }
         }
         prevStam[p.id] = st;
-        if (m <= 22) { q1Sum += st; q1Count++; }
-        else if (m <= 45) { q2Sum += st; q2Count++; }
-        else if (m <= 68) { q3Sum += st; q3Count++; }
-        else { q4Sum += st; q4Count++; }
+  if (m <= 22) { q1Sum += st; q1Count++; }
+  else if (m <= 45) { q2Sum += st; q2Count++; }
+  else if (m <= 68) { q3Sum += st; q3Count++; }
+  else { q4Sum += st; q4Count++; }
       }
       if (m == 90) {
         for (final p in all) {
@@ -322,7 +323,8 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
             }
           }
         }
-      }
+  }
+  minuteSamples++;
     }
   }
   await Future<void>.delayed(const Duration(milliseconds: 10));
@@ -371,12 +373,12 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     'interceptsWall': interceptsWall,
     'savesCat': savesCat,
     'goalsAgainstCat': goalsAgainstCat,
-    'q1Avg': q1Count==0?0:q1Sum/q1Count,
-    'q2Avg': q2Count==0?0:q2Sum/q2Count,
-    'q3Avg': q3Count==0?0:q3Sum/q3Count,
-    'q4Avg': q4Count==0?0:q4Sum/q4Count,
-    'engFinalAvg': engFinalCount==0?0:engFinalSum/engFinalCount,
-    'nonEngFinalAvg': nonEngFinalCount==0?0:nonEngFinalSum/nonEngFinalCount,
+  'q1Avg': q1Count==0?0:q1Sum/q1Count,
+  'q2Avg': q2Count==0?0:q2Sum/q2Count,
+  'q3Avg': q3Count==0?0:q3Sum/q3Count,
+  'q4Avg': q4Count==0?0:q4Sum/q4Count,
+  'engFinalAvg': engFinalCount==0?0:engFinalSum/engFinalCount,
+  'nonEngFinalAvg': nonEngFinalCount==0?0:nonEngFinalSum/nonEngFinalCount,
     // NEW: per-position final stamina averages
     'engFinalGKAvg': engFinalGKCnt==0?0:engFinalGKSum/engFinalGKCnt,
     'engFinalDEFAvg': engFinalDEFCnt==0?0:engFinalDEFSum/engFinalDEFCnt,
@@ -387,8 +389,8 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     'nonEngFinalMIDAvg': nonEngFinalMIDCnt==0?0:nonEngFinalMIDSum/nonEngFinalMIDCnt,
     'nonEngFinalFWDAvg': nonEngFinalFWDCnt==0?0:nonEngFinalFWDSum/nonEngFinalFWDCnt,
     // NEW: decay metrics
-    'engDecayPerMin': engDecayTicks==0?0:engDecaySum/engDecayTicks,
-    'nonEngDecayPerMin': nonEngDecayTicks==0?0:nonEngDecaySum/nonEngDecayTicks,
+  'engDecayPerMin': (minuteSamples==0||engDecayTicks==0)?0:(engDecaySum/engDecayTicks),
+  'nonEngDecayPerMin': (minuteSamples==0||nonEngDecayTicks==0)?0:(nonEngDecaySum/nonEngDecayTicks),
     // NEW: ENG distribution counts
     'engPlayersGK': engPlayersGK,
     'engPlayersDEF': engPlayersDEF,
@@ -398,9 +400,18 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
 }
 
 Future<void> main(List<String> args) async {
-  final games = args.isNotEmpty ? int.parse(args[0]) : 50;
-  final modeArg = args.length > 1 ? args[1] : 'legacy';
-  final useGraph = modeArg.toLowerCase().startsWith('g');
+  // Accept either: <games> <mode>  OR  --games <n> --graph/--legacy
+  int games = 50; bool useGraph = false;
+  if (args.isNotEmpty) {
+    for (int i=0;i<args.length;i++) {
+      final a = args[i];
+      if (a == '--games' && i+1 < args.length) { games = int.tryParse(args[i+1]) ?? games; i++; continue; }
+      if (i==0 && int.tryParse(a) != null) { games = int.parse(a); continue; }
+      if (a == '--graph' || a.toLowerCase().startsWith('graph')) { useGraph = true; continue; }
+      if (a == '--legacy' || a.toLowerCase().startsWith('legacy')) { useGraph = false; continue; }
+      if (i==1 && (a.startsWith('g')||a.startsWith('G'))) { useGraph = true; }
+    }
+  }
   final results = <Map<String, dynamic>>[];
   int totalShort = 0, totalLong = 0, totalBack = 0, totalAllPass = 0;
   int totalIntercepts = 0;
@@ -415,7 +426,9 @@ Future<void> main(List<String> args) async {
   int totalInterceptsWall = 0;
   int totalSavesCat = 0, totalGoalsAgainstCat = 0;
   int totalVisPlayers = 0, totalPasPlayers = 0, totalDrbPlayers = 0, totalFinPlayers = 0, totalWallPlayers = 0, totalCatPlayers = 0, totalCapPlayers = 0;
-  double sumQ1=0,sumQ2=0,sumQ3=0,sumQ4=0,sumEng=0,sumNon=0; int nQ=0;
+  double sumQ1=0,sumQ2=0,sumQ3=0,sumQ4=0,sumEng=0,sumNon=0; int nQ=0; // nQ == games with data
+  double sumEngFinalPlayers=0; int cntEngFinalPlayers=0; // total ENG player final stamina
+  double sumNonEngFinalPlayers=0; int cntNonEngFinalPlayers=0;
   // NEW aggregation accumulators
   double sumEngDecay=0,sumNonEngDecay=0; int cntEngDecay=0,cntNonEngDecay=0;
   int sumEngGK=0,sumEngDEF=0,sumEngMID=0,sumEngFWD=0;
@@ -455,12 +468,18 @@ Future<void> main(List<String> args) async {
     totalWallPlayers += res['wallPlayers'] as int;
     totalCatPlayers += res['catPlayers'] as int;
     totalCapPlayers += res['capPlayers'] as int;
-    sumQ1 += (res['q1Avg'] as num).toDouble();
-    sumQ2 += (res['q2Avg'] as num).toDouble();
-    sumQ3 += (res['q3Avg'] as num).toDouble();
-    sumQ4 += (res['q4Avg'] as num).toDouble();
-    sumEng += (res['engFinalAvg'] as num).toDouble();
-    sumNon += (res['nonEngFinalAvg'] as num).toDouble();
+  sumQ1 += (res['q1Avg'] as num).toDouble();
+  sumQ2 += (res['q2Avg'] as num).toDouble();
+  sumQ3 += (res['q3Avg'] as num).toDouble();
+  sumQ4 += (res['q4Avg'] as num).toDouble();
+  sumEng += (res['engFinalAvg'] as num).toDouble();
+  sumNon += (res['nonEngFinalAvg'] as num).toDouble();
+  nQ++;
+  // Player-level finals (exclude zero when no ENG)
+  final engAvgFinal = (res['engFinalAvg'] as num).toDouble();
+  final nonEngAvgFinal = (res['nonEngFinalAvg'] as num).toDouble();
+  if (engAvgFinal>0) { sumEngFinalPlayers += engAvgFinal; cntEngFinalPlayers++; }
+  if (nonEngAvgFinal>0) { sumNonEngFinalPlayers += nonEngAvgFinal; cntNonEngFinalPlayers++; }
     // NEW: decay & position aggregation
     sumEngDecay += (res['engDecayPerMin'] as num).toDouble(); cntEngDecay++;
     sumNonEngDecay += (res['nonEngDecayPerMin'] as num).toDouble(); cntNonEngDecay++;
@@ -526,7 +545,10 @@ Future<void> main(List<String> args) async {
   print('PAS passes: short=$totalPassesPasShort (${(pasShareShort*100).toStringAsFixed(1)}% of all), long=$totalPassesPasLong (${(pasShareLong*100).toStringAsFixed(1)}% of long)');
   print('WALL intercept share: ${(wallInterceptShare*100).toStringAsFixed(1)}%  (wallIntercepts=$totalInterceptsWall of $totalIntercepts)');
   print('Stamina Q1/Q2/Q3/Q4 avg: ${avgQ1.toStringAsFixed(1)} / ${avgQ2.toStringAsFixed(1)} / ${avgQ3.toStringAsFixed(1)} / ${avgQ4.toStringAsFixed(1)}');
-  print('Final Stamina ENG vs non-ENG: ${engAvg.toStringAsFixed(1)} vs ${nonEngAvg.toStringAsFixed(1)} (diff ${(engAvg-nonEngAvg).toStringAsFixed(1)}pp)');
+  final engAvgPlayers = cntEngFinalPlayers==0?0:sumEngFinalPlayers/cntEngFinalPlayers;
+  final nonEngAvgPlayers = cntNonEngFinalPlayers==0?0:sumNonEngFinalPlayers/cntNonEngFinalPlayers;
+  print('Final Stamina ENG vs non-ENG (game-level avg incl zeros): ${engAvg.toStringAsFixed(1)} vs ${nonEngAvg.toStringAsFixed(1)}');
+  print('Final Stamina ENG vs non-ENG (player-only avg): ${engAvgPlayers.toStringAsFixed(1)} vs ${nonEngAvgPlayers.toStringAsFixed(1)} (diff ${(engAvgPlayers-nonEngAvgPlayers).toStringAsFixed(1)}pp)');
   // NEW prints
   print('ENG distribution (avg per game) GK/DEF/MID/FWD: ${(sumEngGK/games).toStringAsFixed(2)}/${(sumEngDEF/games).toStringAsFixed(2)}/${(sumEngMID/games).toStringAsFixed(2)}/${(sumEngFWD/games).toStringAsFixed(2)}');
   print('Per-pos final stamina ENG (GK/DEF/MID/FWD): ${engFinalGKAvg.toStringAsFixed(1)} / ${engFinalDEFAvg.toStringAsFixed(1)} / ${engFinalMIDAvg.toStringAsFixed(1)} / ${engFinalFWDAvg.toStringAsFixed(1)}');

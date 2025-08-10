@@ -59,6 +59,28 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 9. [ ] Test unit: intercept multi-defensor monotônico (#defs ↑ → P_intercept ↑)
 10. [ ] Test unit: efeitos VIS/PAS/FIN/DRB (redução/elevação relativa)
 
+### TODO (Novas sugestões próximos passos - Tuning Global)
+11. [ ] Implementar fallback de chute ao atingir passMax sem early shot (garantir tentativa de finalização)
+12. [ ] Adicionar pequena chance de chute pós-drible bem-sucedido mesmo fora da zona ideal (aumentar volume de chutes)
+13. [ ] Ajustar early shot: dist 0.30 e prob moderada + manter dampening forte de pGoal início (equilibrar volume vs conversão)
+14. [ ] Pass success uplift: interceptBase 0.064→0.062 + multi-cap 0.28→0.26 + buffs leves VIS/PAS (VIS rel 0.10→0.12, PAS short rel 0.05→0.06)
+15. [ ] xG alignment: aumentar graphXgBase 0.055→0.065 e reduzir graphXgBlendAttack 0.55→0.48 (mais peso posição) antes de novo ajuste pGoal
+16. [ ] Converter ENG métrica: redefinir cálculo decay (base 0.08→0.06, ampliar variável) para atingir redução relativa ~15% em vez de ~50%
+17. [ ] Aplicar efeitos mínimos habilidades novas:
+	- MRK: interceptChance *= (1 + rel)
+	- HDR: bônus xG se dxGoal < limiar cabeceio (ou se altura simulada > threshold futuramente)
+	- AER/REF/COM: componentes distintos na fórmula de pSave (separar reflexo vs posicionamento)
+	- CLT: boost pGoal relativo >=75' (clamp para não inflar demais conversão)
+	- SPR: aumentar componente paceDiff no drible
+18. [ ] Separar pGoal pipeline em estágios (posQual → shotQuality → finishModifiers) para permitir injeção clara de habilidades futuras
+19. [ ] Adicionar métricas batch: distribuição passes por comprimento, % chutes após n passes, conversão early vs late shot
+20. [ ] Test unit novos: MRK aumenta intercept, HDR aumenta xG de cabeceio artificial, SPR aumenta pSucesso drible pace-dominante
+21. [ ] Normalizar logging para permitir contagem realista de passes (opcional micro-eventos) antes do tuning final de % sucesso
+22. [ ] Criar flag de relatório resumido vs detalhado no batch script (--summary)
+23. [ ] Inserir clamp consistente de prob intermediárias (antes e depois de cada mod) para facilitar debug estatístico
+24. [ ] Documentar diagrama pipeline de decisão (pass/drible/long/hold/launch → shot) com pontos de intervenção de habilidades
+25. [ ] Preparar script de comparação legacy vs graph (mesmos seeds) exportando CSV para análise externa
+
 ## 3. Métricas de Validação (Capturar por Fase)
 | Métrica | Alvo | Baseline Atual | Medido (Último) | Notas |
 |---------|------|----------------|-----------------|-------|
@@ -128,6 +150,15 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-09 | 4 | Adaptive short boost pós ação arriscada | TUNE |
 | 2025-08-09 | 5 | Integração habilidades (VIS, PAS, DRB, FIN, WALL, CAT, CAP) em intercept/drible/pGoal/ratings | TUNE |
 | 2025-08-09 | 6 | ENG aplicado na fadiga (redução decay) | DOING |
+| 2025-08-09 | 6 | Centralizado effectiveAttr + role multipliers básicos + testes intercept/FIN | DOING |
+| 2025-08-09 | 6 | Tuning: closeChance↓, intercept↓, dribble weight↑, ENG nerf, early shot trigger | TUNE |
+| 2025-08-09 | 6 | Tuning2: xG coeff↑, earlyShot prob↑ dist↓, intercept dist/press↓, DRB nerf, stamina floor ENG | TUNE |
+| 2025-08-10 | 6 | Corrective: soften intercept further, raise xG coeff, earlyShot prob↑ (will dial back next), ENG decay clamp adjust | TUNE |
+| 2025-08-10 | 6 | Tuning3: reduce earlyShot prob/dist, lower pGoalMax & FIN boost, soften intercept more, dribble weight↑ success↓, xG coeff slight down | TUNE |
+| 2025-08-10 | 6 | Tuning4: extend pass chains (passMax 5), soften intercept base, raise xG base/coeff, lower earlyShot prob, ENG variable-only decay | TUNE |
+| 2025-08-10 | 6 | Tuning5: reduce conversion (pGoal base 0.88, stronger GK), raise earlyShotProb 0.34, soften intercept base & multi-cap, moderate xG coeff | TUNE |
+| 2025-08-10 | 6 | Tuning6: shot volume push (earlyShotProb 0.40), conversion curb (pGoal base 0.85, GK factor↑), intercept base 0.064, multi-cap 0.28, ENG variable scaling expanded + rel 0.05 | TUNE |
+| 2025-08-10 | 5 | Scaffolding novas habilidades (MRK, AER, REF, COM, HDR, CLT, SPR) placeholders EngineParams + entities doc | DONE |
 | 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
 | 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 

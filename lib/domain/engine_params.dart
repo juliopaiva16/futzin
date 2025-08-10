@@ -49,30 +49,34 @@ class EngineParams {
   static const double legacyDeflectOutProb = 0.20;
 
   // Graph sequence tuning (Phase 2 experimental)
-  static const double graphCloseBase = 0.08;
-  static const double graphCloseDefenseFactor = 0.22;
+  static const double graphCloseBase = 0.06; // tuned down to increase sequences
+  static const double graphCloseDefenseFactor = 0.17; // slightly reduced to allow more sequences
   static const double graphPassTempoWidthFactor = 1.1;
   static const int    graphPassMin = 1;
-  static const int    graphPassMax = 4; // was 3 (allow slightly longer chains)
-  static const double graphInterceptBase = 0.087; // was 0.090 (tuning step 4)
-  static const double graphInterceptDefenseFactor = 0.17; // was 0.18 (step3 tuning)
-  static const double graphInterceptPressingFactor = 0.05;
-  static const double graphInterceptDistFactor = 0.13; // was 0.15 (softer distance scaling)
+  static const int    graphPassMax = 5; // allow longer chains to raise shot volume
+  // Interception probabilities still a bit high (pass success ~72% < target 75-88%).
+  // Soften further to raise pass completion.
+  static const double graphInterceptBase = 0.064; // further softened (Tuning6)
+  static const double graphInterceptDefenseFactor = 0.145; // softened
+  static const double graphInterceptPressingFactor = 0.032; // softened
+  static const double graphInterceptDistFactor = 0.10; // unchanged
   static const double graphInterceptMin = 0.02;
   static const double graphInterceptMax = 0.65;
   static const double graphFoulBase = 0.05;
   static const double graphFoulPressingFactor = 0.05;
   static const double graphRedBase = 0.03;
   static const double graphRedTempoFactor = 0.03;
-  static const double graphXgBase = 0.04;
+  static const double graphXgBase = 0.055; // slight rollback
   static const double graphXgBlendAttack = 0.55; // weight for baseQual (rest for posFactor)
-  static const double graphXgCoeff = 0.42; // multiplier after blend
+  // Raise xG reporting (was undershooting vs actual goals) without inflating goals:
+  static const double graphXgCoeff = 0.80; // moderate xG scale
   static const double graphXgRandomRange = 0.08; // +/- half
   static const double graphXgMin = 0.02;
-  static const double graphXgMax = 0.60;
+  static const double graphXgMax = 0.70; // trim ceiling a bit
   static const double graphGoalGkSaveFactor = 0.33;
   static const double graphPGoalMin = 0.02;
-  static const double graphPGoalMax = 0.78;
+  // Slightly reduce finishing ceiling to curb conversion (>25% was high):
+  static const double graphPGoalMax = 0.70; // reduce finishing ceiling
   static const double graphShotSaveBase = 0.52;
   static const double graphShotSaveQualityFactor = 0.18; // subtract baseQual * factor
   static const double graphShotSaveGkFactor = 0.24; // add gkSave * factor
@@ -86,11 +90,11 @@ class EngineParams {
 
   // Retuned (v2) multi-defender interception (softer aggregation)
   static const double graphMultiInterceptRadiusV2 = 0.12; // was 0.13
-  static const double graphMultiInterceptPerDefBaseV2 = 0.017; // was 0.019 (tuning step 3)
+  static const double graphMultiInterceptPerDefBaseV2 = 0.016; // softened
   static const double graphMultiInterceptDefenseScaleV2 = 0.40; // unchanged
   static const double graphMultiInterceptLaneTMinV2 = 0.10; // narrower window (was 0.08)
   static const double graphMultiInterceptLaneTMaxV2 = 0.90; // narrower window (was 0.92)
-  static const double graphMultiInterceptMaxV2 = 0.32; // was 0.35 (tuning step 2)
+  static const double graphMultiInterceptMaxV2 = 0.28; // lowered again for higher pass completion
 
   // Graph edge weighting (Phase 3: congestion-aware pass selection)
   static const double graphEdgeCongestionRadius = 0.12; // radius around mid pass point
@@ -98,14 +102,15 @@ class EngineParams {
 
   // Phase 4 action selection weights
   static const double graphActionShortBase = 1.62; // was 1.55 (tuning step 1)
-  static const double graphActionDribbleBase = 0.12; // was 0.14
+  // Increase dribble weight to raise attempts (~4.8 -> aim 8-12 per match):
+  static const double graphActionDribbleBase = 0.26; // slight bump to lift attempts
   static const double graphActionLongPassBase = 0.06; // was 0.08
   static const double graphActionBackPassBase = 0.09; // unchanged
   static const double graphActionHoldBase = 0.07; // unchanged
   static const double graphActionLaunchBase = 0.015; // was 0.02
   // Adaptive boost after a successful risky action (dribble/long/launch retain)
   static const double graphAdaptiveShortBoost = 0.40; // new: extra short weight next decision
-  static const int graphActionMaxDribblesPerSeq = 1;
+  static const int graphActionMaxDribblesPerSeq = 3; // unchanged
   static const int graphActionMaxLongPerSeq = 1;
   static const double graphBackPassInterceptFactor = 0.60; // safer (was 0.65)
   static const double graphHoldExtraPassWeight = 0.78; // was 0.70 (tuning step 5)
@@ -114,9 +119,9 @@ class EngineParams {
   static const double graphLongPassMinDist = 0.28; // candidate receiver >= this
   static const double graphLaunchTriggerDist = 0.34; // if no good short options
   // Dribble resolution parameters
-  static const double graphDribbleSuccessBase = 0.52; // baseline success prob
+  static const double graphDribbleSuccessBase = 0.50; // reduce average success a bit
   static const double graphDribbleAttackSkillScale = 0.30; // (technique/100)*scale additive
-  static const double graphDribbleDefSkillScale = 0.35; // (defense/100)*scale subtractive
+  static const double graphDribbleDefSkillScale = 0.38; // increase defensive impact
   static const double graphDribblePaceScale = 0.20; // (pace diff /100)*scale additive
   static const double graphDribbleSuccessMin = 0.15;
   static const double graphDribbleSuccessMax = 0.85;
@@ -132,12 +137,25 @@ class EngineParams {
   static const double graphAbilityVisInterceptRel = 0.10; // passer VIS reduces multi+single intercept chance rel
   static const double graphAbilityPasShortRel = 0.05; // PAS reduces short/back intercept
   static const double graphAbilityPasLongSuccess = 0.03; // PAS increases long pass success abs before clamp
-  static const double graphAbilityDrbSuccessAdd = 0.05; // DRB additive to dribble success before clamp
+  static const double graphAbilityDrbSuccessAdd = 0.025; // slight further nerf to keep ability success <=60%
   static const double graphAbilityDrbExtraWeight = 0.15; // DRB extra dribble action weight multiplier
-  static const double graphAbilityFinPGoalRel = 0.07; // FIN increases pGoal relative (post base calc)
+  static const double graphAbilityFinPGoalRel = 0.05; // reduce FIN relative boost
   static const double graphAbilityWallInterceptRel = 0.05; // WALL defenders increase intercept rel (once)
   static const double graphAbilityCatSaveRel = 0.06; // CAT reduces pGoal rel
-  static const double graphAbilityEngStaminaDecayRel = 0.25; // ENG reduces stamina decay (future loop)
+  static const double graphAbilityEngStaminaDecayRel = 0.05; // target ~15% relative decay reduction overall (Tuning6)
+  // Newly scaffolded abilities (placeholders, effects = 0.0 until tuning phase)
+  static const double graphAbilityMrkInterceptRel = 0.0; // MRK: extra intercept relative boost (def field players)
+  static const double graphAbilityAerGkSaveRel = 0.0;    // AER: aerial GK save / high ball influence
+  static const double graphAbilityRefGkSaveRel = 0.0;    // REF: GK reflex save relative reduction to pGoal
+  static const double graphAbilityComGkSaveRel = 0.0;    // COM: GK composure lowers rebound/off-target variance (proxy: save rel)
+  static const double graphAbilityHdrShotXgAdd = 0.0;    // HDR: add small xG for header-like (distance > threshold) shots
+  static const double graphAbilityCltLatePGoalRel = 0.0; // CLT: late-game pGoal relative boost (>=75')
+  static const double graphAbilitySprDribblePaceRel = 0.0; // SPR: increases pace component in dribble success
+
+  // Early shot tuning (Phase 6 provisional)
+  // Boost shot volume (currently ~12.3, target 18-25) by allowing earlier & more frequent shots.
+  static const double graphEarlyShotDist = 0.28; // unchanged
+  static const double graphEarlyShotProb = 0.40; // modest raise while retaining early pGoal dampening (Tuning6)
   static const double graphAbilityCapTeamAdj = 0.03; // CAP small team attack/defense adj
 
   // Phase 6 stamina model factors (minute-level decay components)

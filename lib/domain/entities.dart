@@ -148,6 +148,9 @@ class Player {
         currentStamina = currentStamina ?? stamina.toDouble(),
         role = role ?? _defaultRoleFor(pos);
 
+    // Placeholder: extended ability set (Phase 5+) includes: MRK, AER, REF, COM, HDR, CLT, SPR
+    // Effects will be applied in match_engine_sequences / utils when tuning reaches those abilities.
+
   Player copy() => Player(
     id: id,
     name: name,

@@ -265,6 +265,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
   bool holdBuff = false; // increases weight of short safe passes next iteration after a hold
   bool adaptiveBoost = false; // new adaptive boost flag
   int usedDribbles = 0; int usedLong = 0;
+  int passesSoFar = 0; // track executed passes
   for (int i = 0; i < maxPasses; i++) {
     // Phase 4: decide action
     _GraphAction chosen = _GraphAction.shortPass;
@@ -331,7 +332,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
       }
       continue;
     }
-    if (chosen == _GraphAction.dribble && nearestDef != null) {
+  if (chosen == _GraphAction.dribble && nearestDef != null) {
       usedDribbles++;
       final paceDiff = (carrier.pace - nearestDef.pace).toDouble();
       double pSuccess = EngineParams.graphDribbleSuccessBase + (carrier.technique / 100.0) * EngineParams.graphDribbleAttackSkillScale + (paceDiff / 100.0) * EngineParams.graphDribblePaceScale - (nearestDef.defense / 100.0) * EngineParams.graphDribbleDefSkillScale;
@@ -413,7 +414,16 @@ List<_SeqEvent> _buildGraphAttackSequence(
       seq.add(_SeqEvent.text(messages.pass(carrier.name, rec.name)));
     }
 
-    carrier = rec;
+  carrier = rec;
+  passesSoFar = i + 1;
+  // Early shot trigger: if sufficiently advanced after >=2 iterations
+  if (passesSoFar >= 2) {
+      final goalX = attackingTeamA ? 1.0 : 0.0;
+      final dxGoal = (goalX - (carrier.x ?? 0.5)).abs();
+      if (dxGoal < EngineParams.graphEarlyShotDist && rng.nextDouble() < EngineParams.graphEarlyShotProb) {
+        break; // exit pass loop to proceed to shot section
+      }
+    }
     // Foul chance unchanged for now (future: dribble specific foul)
     final foulChance = EngineParams.graphFoulBase + EngineParams.graphFoulPressingFactor * def.tactics.pressing;
     if (rng.nextDouble() < foulChance) {
@@ -437,14 +447,17 @@ List<_SeqEvent> _buildGraphAttackSequence(
       (rng.nextDouble() * EngineParams.graphXgRandomRange - EngineParams.graphXgRandomRange / 2);
   xg = xg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
-  double pGoal = (xg * (0.95 - EngineParams.graphGoalGkSaveFactor * gkSave)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
-  // Ability: FIN increases pGoal relatively, CAT reduces
-  if (carrier.hasAbility('FIN')) {
-    pGoal = (pGoal * (1.0 + EngineParams.graphAbilityFinPGoalRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  // Adjusted base multiplier 0.95 -> 0.92 to reduce overall conversion. GK save factor unchanged here.
+  double pGoal = (xg * (0.85 - EngineParams.graphGoalGkSaveFactor * gkSave * 1.10)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax); // stronger GK influence (Tuning6)
+  // Dampening for early shots (short pass chains) to encourage more sequences ending in non-goal shots.
+  if (passesSoFar <= 2) {
+    pGoal *= 0.80; // stronger early chain dampening (Tuning6)
+    if (passesSoFar == 1) pGoal *= 0.90; // first-pass shot extra dampening
+    pGoal = pGoal.clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   }
-  if (defRat.gk != null && defRat.gk!.hasAbility('CAT')) {
-    pGoal = (pGoal * (1.0 - EngineParams.graphAbilityCatSaveRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
-  }
+  if (carrier.hasAbility('FIN')) pGoal = (pGoal * (1.0 + EngineParams.graphAbilityFinPGoalRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  if (defRat.gk != null && defRat.gk!.hasAbility('CAT')) pGoal = (pGoal * (1.0 - EngineParams.graphAbilityCatSaveRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  if (carrier.role == Role.FWD_PC) pGoal = (pGoal * 1.03).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   if (rng.nextDouble() < pGoal) {
     seq.add(_SeqEvent.goal(messages.goal(atk.name, carrier.name), xg));
     return seq;
