@@ -89,7 +89,7 @@ void main() {
     final teamB = TeamConfig(name:'B', formation:Formation.formations.first, tactics:Tactics(), squad:[]);
     teamA.selectedIds..add(fin.id)..add(base.id);
     final messages = _DummyMessages();
-    final eng = MatchEngine(teamA, teamB, messages: messages, seed: 1, useGraph: true);
+  final eng = MatchEngine(teamA, teamB, messages: messages, seed: 1);
   final atkR = PublicTeamRatings(attack:80, defense:70, gk:null);
   final defR = PublicTeamRatings(attack:60, defense:65, gk:null);
   final rFin = graphComputeShotModel(eng: eng, carrier: fin, atk: atkR, def: defR, attackingTeamA: true);

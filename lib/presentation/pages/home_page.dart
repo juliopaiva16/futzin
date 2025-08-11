@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   bool simRunning = false;
   bool loaded = false;
   double _speed = 1.0;
-  bool _expGraph = false; // experimental graph engine flag (fase 1 placeholder)
+  // Graph engine is always on (MT9); toggle removed.
 
   @override
   void initState() {
@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadState() async {
     final sp = await SharedPreferences.getInstance();
-    _expGraph = sp.getBool('futsim_exp_graph_engine') ?? false;
     final data = sp.getString('futsim_state_v1');
     if (data != null) {
       try {
@@ -104,7 +103,7 @@ class _HomePageState extends State<HomePage> {
     final sp = await SharedPreferences.getInstance();
     final j = {'teamA': teamA.toJson(), 'teamB': teamB.toJson()};
     await sp.setString('futsim_state_v1', jsonEncode(j));
-    await sp.setBool('futsim_exp_graph_engine', _expGraph);
+  // Toggle removed; keep key for backward compat but no-op.
   }
 
   List<Player> _generateSquad(String tag) {
@@ -239,13 +238,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       events.clear();
       engine?.stop();
-      // For now graph engine not implemented: still use legacy engine.
-      engine = MatchEngine(teamA, teamB, messages: _FlutterMatchMessages(l10n), useGraph: _expGraph);
+  engine = MatchEngine(teamA, teamB, messages: _FlutterMatchMessages(l10n));
       simRunning = true;
     });
-    if (_expGraph) {
-      _showSnack('Experimental graph engine flag ON (not yet active).');
-    }
     engine!.stream.listen((e) {
       setState(() {
         events.add(e);
@@ -313,16 +308,7 @@ class _HomePageState extends State<HomePage> {
     final appBar = AppBar(
       title: Text(l10n.appTitle),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.science_outlined),
-            tooltip: 'Graph Engine: ${_expGraph ? 'ON' : 'OFF'}',
-            onPressed: simRunning
-                ? null
-                : () async {
-                    setState(() => _expGraph = !_expGraph);
-                    await _saveState();
-                  },
-        ),
+  // Graph engine is default; removed toggle button.
         IconButton(
           icon: const Icon(Icons.ios_share),
           onPressed: _shareLog,

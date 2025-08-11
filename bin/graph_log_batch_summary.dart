@@ -36,7 +36,7 @@ void main(List<String> args) async {
     teamA.autoPick(); teamB.autoPick();
     final logFile = 'build/logs/match_${i}_${DateTime.now().millisecondsSinceEpoch}.jsonl';
     final logger = JsonlGraphEventLogger(logFile);
-    final eng = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: seed, useGraph: true, graphLogger: logger);
+  final eng = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: seed, graphLogger: logger);
     eng.startManual();
     while (eng.isRunning) { eng.advanceMinute(); }
   logger.flush();

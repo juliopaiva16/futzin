@@ -23,7 +23,7 @@ void main(List<String> args) async {
   final filePath = 'build/logs/match_${DateTime.now().millisecondsSinceEpoch}.jsonl';
   final logger = JsonlGraphEventLogger(filePath);
   final engine = MatchEngine(teamA, teamB,
-      messages: _StubMessages(), seed: seed, useGraph: true, graphLogger: logger);
+  messages: _StubMessages(), seed: seed, graphLogger: logger);
   engine.startManual();
   while (engine.isRunning) {
     engine.advanceMinute();

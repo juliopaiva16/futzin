@@ -28,11 +28,11 @@ class MatchEngine {
   bool isRunning = false;
   static const int _baseTickMs = 450;
   double speedMultiplier = 1.0;
-  final bool useGraph; // experimental graph micro-engine (fase 2)
+  // Graph micro-engine is now the default and only path (MT9)
   final GraphEventLogger? graphLogger; // MT1 logger (nullable)
   final String matchId; // unique ID for instrumentation
   int _possessionCounter = 0;
-  MatchEngine(this.teamA, this.teamB, {required this.messages, int? seed, this.useGraph = false, this.graphLogger, String? matchId})
+  MatchEngine(this.teamA, this.teamB, {required this.messages, int? seed, this.graphLogger, String? matchId})
       : matchId = matchId ?? 'M${DateTime.now().millisecondsSinceEpoch % 1000000}',
         rng = Random(seed ?? DateTime.now().millisecondsSinceEpoch);
 
@@ -141,9 +141,7 @@ class MatchEngine {
     final defTeam = attackingTeamA ? teamB : teamA;
     final atkRat = attackingTeamA ? aRating : bRating;
     final defRat = attackingTeamA ? bRating : aRating;
-    final seq = useGraph
-        ? _buildGraphAttackSequence(this, atkTeam, defTeam, atkRat, defRat, attackingTeamA)
-        : _buildAttackSequence(this, atkTeam, defTeam, atkRat, defRat);
+  final seq = _buildGraphAttackSequence(this, atkTeam, defTeam, atkRat, defRat, attackingTeamA);
     final secs = (EngineParams.legacySeqMinSeconds + EngineParams.legacySeqPerSubEventSeconds * seq.length)
         .clamp(EngineParams.legacySeqMinSeconds, EngineParams.legacySeqMaxSeconds)
         .toDouble();

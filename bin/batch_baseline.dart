@@ -100,11 +100,11 @@ TeamConfig _rndTeam(Random r, String name) {
   return team;
 }
 
-Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
+Future<Map<String, dynamic>> simulateOne(int seed) async {
   final r = Random(seed);
   final teamA = _rndTeam(r, 'A');
   final teamB = _rndTeam(r, 'B');
-  final engine = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: seed, useGraph: useGraph);
+  final engine = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: seed);
   engine.startManual();
   // Stamina tracking accumulators per quarter
   double q1Sum = 0, q2Sum = 0, q3Sum = 0, q4Sum = 0; int q1Count = 0, q2Count = 0, q3Count = 0, q4Count = 0;
@@ -344,7 +344,7 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
   }
   final passesAll = passesShort + passesLong + passesBack;
   // If granular counters captured (graph mode with outcome logging), compute attempts by summing successes + intercepts by type.
-  bool granular = useGraph && EngineParams.graphLogPassOutcome; // need EngineParams import for constant; add at top
+  bool granular = EngineParams.graphLogPassOutcome;
   final attemptsAll = granular ? (attemptsShort + attemptsLong + attemptsBack) : (passesAll + intercepts);
   if (!granular) {
     attemptsShort = passesShort + intercepts; // legacy approximation (cannot split)
@@ -423,15 +423,13 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
 
 Future<void> main(List<String> args) async {
   // Accept either: <games> <mode>  OR  --games <n> --graph/--legacy
-  int games = 50; bool useGraph = false;
+  int games = 50;
   if (args.isNotEmpty) {
     for (int i=0;i<args.length;i++) {
       final a = args[i];
       if (a == '--games' && i+1 < args.length) { games = int.tryParse(args[i+1]) ?? games; i++; continue; }
       if (i==0 && int.tryParse(a) != null) { games = int.parse(a); continue; }
-      if (a == '--graph' || a.toLowerCase().startsWith('graph')) { useGraph = true; continue; }
-      if (a == '--legacy' || a.toLowerCase().startsWith('legacy')) { useGraph = false; continue; }
-      if (i==1 && (a.startsWith('g')||a.startsWith('G'))) { useGraph = true; }
+  // Graph engine is default; mode flags are ignored.
     }
   }
   final results = <Map<String, dynamic>>[];
@@ -460,7 +458,7 @@ Future<void> main(List<String> args) async {
   double sumNonEngFinalGK=0,sumNonEngFinalDEF=0,sumNonEngFinalMID=0,sumNonEngFinalFWD=0;
   int gamesWithEngGK=0,gamesWithEngDEF=0,gamesWithEngMID=0,gamesWithEngFWD=0; // track presence
   for (int i = 0; i < games; i++) {
-    final res = await simulateOne(1000 + i, useGraph);
+  final res = await simulateOne(1000 + i);
     results.add(res);
     totalShort += res['passesShort'] as int;
     totalLong += res['passesLong'] as int;
@@ -566,7 +564,7 @@ Future<void> main(List<String> args) async {
   final nonEngFinalDEFAvg = avgOrZero(sumNonEngFinalDEF, games);
   final nonEngFinalMIDAvg = avgOrZero(sumNonEngFinalMID, games);
   final nonEngFinalFWDAvg = avgOrZero(sumNonEngFinalFWD, games);
-  print('Games: $games  Mode: ${useGraph ? 'GRAPH' : 'LEGACY'}');
+  print('Games: $games  Mode: GRAPH');
   print('Avg Goals: ${avgGoals.toStringAsFixed(2)}  Avg xG: ${avgXg.toStringAsFixed(2)}');
   print('Avg Shots: ${avg('shots').toStringAsFixed(1)}');
   print('Passes (short/long/back): $totalShort/$totalLong/$totalBack  Intercepts: $totalIntercepts');

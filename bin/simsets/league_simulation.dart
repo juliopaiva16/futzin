@@ -54,7 +54,7 @@ void main(List<String> args) async {
   String teamsPath = 'data/random_teams.jsonl';
   String outCsv = 'data/league_results.csv';
   int gamesPerPair = 1;
-  bool useGraph = true; // default to new engine for comparative studies
+  // Graph engine only (MT9)
   int seed = 77;
   bool jitterTactics = true; // allow disabling for fixed baseline comparisons
   String? poolPath; // optional: build teams automatically from a player pool
@@ -66,8 +66,7 @@ void main(List<String> args) async {
     if (a == '--teams' && i+1<args.length) teamsPath = args[++i];
     else if (a == '--out' && i+1<args.length) outCsv = args[++i];
     else if (a == '--games' && i+1<args.length) gamesPerPair = int.tryParse(args[++i]) ?? gamesPerPair;
-    else if (a == '--legacy') useGraph = false;
-    else if (a == '--graph') useGraph = true;
+  // Mode flags ignored; graph is default
     else if (a == '--seed' && i+1<args.length) seed = int.tryParse(args[++i]) ?? seed;
     else if (a == '--noJitter') jitterTactics = false;
     else if (a == '--pool' && i+1<args.length) poolPath = args[++i];
@@ -190,7 +189,7 @@ void main(List<String> args) async {
         final atkB = (tBProto['atkOverall'] as num).toDouble();
         final defB = (tBProto['defOverall'] as num).toDouble();
         final ovrB = (tBProto['overall'] as num).toDouble();
-  final engine = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: 100000 + i*1000 + j*10 + g, useGraph: useGraph);
+  final engine = MatchEngine(teamA, teamB, messages: _StubMessages(), seed: 100000 + i*1000 + j*10 + g);
         // Event counters
         int shotsA=0, shotsB=0;
         int passesShortA=0, passesShortB=0;
@@ -235,7 +234,7 @@ void main(List<String> args) async {
           '${teamA.tactics.attackBias.toStringAsFixed(3)},${teamB.tactics.attackBias.toStringAsFixed(3)},${teamA.tactics.tempo.toStringAsFixed(3)},${teamB.tactics.tempo.toStringAsFixed(3)},${teamA.tactics.pressing.toStringAsFixed(3)},${teamB.tactics.pressing.toStringAsFixed(3)},'
           '${teamA.tactics.lineHeight.toStringAsFixed(3)},${teamB.tactics.lineHeight.toStringAsFixed(3)},${teamA.tactics.width.toStringAsFixed(3)},${teamB.tactics.width.toStringAsFixed(3)},'
           '${styleA},${styleB},${engine.scoreA},${engine.scoreB},${engine.xgA.toStringAsFixed(3)},${engine.xgB.toStringAsFixed(3)},'
-          '${shotsA},${shotsB},${passesShortA},${passesShortB},${passesLongA},${passesLongB},${passesBackA},${passesBackB},${interceptsA},${interceptsB},${dribAttA},${dribAttB},${dribSuccA},${dribSuccB},${useGraph?'GRAPH':'LEGACY'}');
+          '${shotsA},${shotsB},${passesShortA},${passesShortB},${passesLongA},${passesLongB},${passesBackA},${passesBackB},${interceptsA},${interceptsB},${dribAttA},${dribAttB},${dribSuccA},${dribSuccB},GRAPH');
       }
     }
   }
