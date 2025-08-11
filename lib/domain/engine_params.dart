@@ -216,4 +216,11 @@ class EngineParams {
   // Micro-costs (absolute stamina points deducted per action)
   static const double staminaSprintCostDribble = 0.45; // per dribble attempt (success or fail)
   static const double staminaSprintEngRel = 0.15; // ENG reduces sprint micro-cost relatively
+
+  // MT7: Momentum tuning parameters
+  static const double momentumShotBase = 0.50; // base momentum for any shot
+  static const double momentumShotXgScale = 0.70; // additional momentum scaled by xG
+  static const double momentumGoal = 1.00; // momentum for a goal
+  static const double momentumCardPenalty = 0.25; // negative applied to offending side
+  static const double momentumInjuryPenalty = 0.15; // slight negative
 }

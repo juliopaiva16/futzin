@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../domain/match_engine.dart';
+import 'momentum_utils.dart';
 
 /// Simple momentum chart: positive values (blue) favor Team A, negative (red) favor Team B.
 class MomentumChart extends StatelessWidget {
@@ -56,26 +57,12 @@ class _MomentumPainter extends CustomPainter {
     final midY = size.height / 2;
     canvas.drawLine(Offset(0, midY), Offset(size.width, midY), axis);
 
-    // Build per-minute weights and markers
-    final minuteScores = List<double>.filled(maxMinutes + 1, 0.0); // 1..90
+    // Build per-minute weights using helper and collect markers
+    final minuteScores = computeMomentumSeries(events, maxMinutes);
     final minuteMarkers = <int, List<MatchEvent>>{};
-
     for (final e in events) {
       final m = e.minute.clamp(1, maxMinutes).toInt();
       minuteMarkers.putIfAbsent(m, () => []).add(e);
-      switch (e.kind) {
-        case MatchEventKind.goal:
-          minuteScores[m] += (e.side > 0 ? 1.0 : -1.0) * 1.0;
-          break;
-        case MatchEventKind.shot:
-          final w = 0.5 + 0.7 * (e.shotXg ?? 0.10); // a bit stronger vertically
-          minuteScores[m] += (e.side > 0 ? 1.0 : -1.0) * w;
-          break;
-        case MatchEventKind.card:
-        case MatchEventKind.injury:
-        case MatchEventKind.info:
-          break;
-      }
     }
 
     // Smoothing: keep higher alpha for more vertical variance

@@ -17,7 +17,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 4 | Ações adicionais (PassLongo, Drible, Recuar, Manter, Lançamento) | Scoring tabela, softmax decisão | TUNE | 2025-08-09 | - |
 | 5 | Habilidades (passes + drible + finalização + defesa) | Aplicar mapa de efeitos por fase | TUNE | 2025-08-09 | - |
 | 6 | Stamina nova + recalibração ratings | Decay tick, attrEff, testes ENG | DOING | 2025-08-09 | - |
-| 7 | Momentum/xG tuning | Ajustar ranges, comparar baseline | TODO | - | - |
+| 7 | Momentum/xG tuning | Ajustar ranges, comparar baseline | DOING | 2025-08-11 | - |
 | 8 | Flag modo experimental + UI toggles | Persistência flag, fallback engine antiga | DONE | 2025-08-09 | 2025-08-09 |
 | 9 | Limpeza e remoção engine antiga | Deprecar código legado | TODO | - | - |
 
@@ -123,7 +123,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | Escala xG baixa | M | M | Recalibrar coeficientes fase 7 |
 
 ## 7. Próxima Ação Imediata
-- Adicionar testes unit básicos (VIS reduz intercept ~10%; FIN aumenta pGoal relativo) e iniciar aplicação ENG na fadiga (fase 6 preparatória).
+- Momentum agora parametrizado (EngineParams.momentum*); chart consome momentumDelta quando disponível. Próximo: testes simples para magnitudes e ajuste fino dos coeficientes.
 
 ## 8. Log de Progresso
 | Data | Fase | Ação | Status |

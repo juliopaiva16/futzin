@@ -19,8 +19,9 @@ class MatchEvent {
   final int side; // +1 A, -1 B, 0 neutral
   final double? shotXg;
   final CardColor? cardColor;
+  final double? momentumDelta; // MT7: per-minute momentum contribution (signed, +A / -B)
   MatchEvent(this.minute, this.text, this.scoreA, this.scoreB, this.xgA, this.xgB,
-      {this.kind = MatchEventKind.info, this.side = 0, this.shotXg, this.cardColor});
+      {this.kind = MatchEventKind.info, this.side = 0, this.shotXg, this.cardColor, this.momentumDelta});
 }
 
 class _TeamRatings {

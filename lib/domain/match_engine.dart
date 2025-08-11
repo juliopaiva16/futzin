@@ -128,7 +128,7 @@ class MatchEngine {
     final eventChance = EngineParams.legacyBaseEventChance + EngineParams.legacyTempoEventFactor * tempoAvg; // 0.28..0.55
     if (rng.nextDouble() > eventChance) {
       possA += EngineParams.legacyCalmPossSeconds; possB += EngineParams.legacyCalmPossSeconds;
-      _controller.add(MatchEvent(minute, messages.calmMinute(minute), scoreA, scoreB, xgA, xgB));
+  _controller.add(MatchEvent(minute, messages.calmMinute(minute), scoreA, scoreB, xgA, xgB, momentumDelta: 0));
       return false;
     }
     final aRating = _teamRatings(teamA);
@@ -156,21 +156,24 @@ class MatchEngine {
     for (final ev in seq) {
       switch (ev.type) {
         case _SeqType.text:
-          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.info, side: attackingTeamA ? 1 : -1));
+          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.info, side: attackingTeamA ? 1 : -1, momentumDelta: 0));
           break;
         case _SeqType.shot:
           final sxg = ev.xg ?? 0.10;
-          _controller.add(MatchEvent(minute, "$minute': ${ev.text} (xG ${sxg.toStringAsFixed(2)})", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.shot, side: attackingTeamA ? 1 : -1, shotXg: sxg));
+          final mom = (attackingTeamA ? 1.0 : -1.0) * (EngineParams.momentumShotBase + EngineParams.momentumShotXgScale * sxg);
+          _controller.add(MatchEvent(minute, "$minute': ${ev.text} (xG ${sxg.toStringAsFixed(2)})", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.shot, side: attackingTeamA ? 1 : -1, shotXg: sxg, momentumDelta: mom));
           break;
         case _SeqType.goal:
           final shotXg = ev.xg ?? 0.1;
           if (attackingTeamA) { scoreA++; xgA += shotXg; } else { scoreB++; xgB += shotXg; }
           final suffix = ev.xg != null ? " (xG ${shotXg.toStringAsFixed(2)})" : "";
-          _controller.add(MatchEvent(minute, "$minute': ${ev.text}$suffix", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.goal, side: attackingTeamA ? 1 : -1, shotXg: shotXg));
+          final mom = (attackingTeamA ? 1.0 : -1.0) * EngineParams.momentumGoal;
+          _controller.add(MatchEvent(minute, "$minute': ${ev.text}$suffix", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.goal, side: attackingTeamA ? 1 : -1, shotXg: shotXg, momentumDelta: mom));
           break;
         case _SeqType.card:
           final offender = ev.offender!; final color = ev.cardType == _CardType.red ? CardColor.red : CardColor.yellow;
-          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.card, side: attackingTeamA ? -1 : 1, cardColor: color));
+          final mom = (attackingTeamA ? -1.0 : 1.0) * EngineParams.momentumCardPenalty; // small negative to offending side
+          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.card, side: attackingTeamA ? -1 : 1, cardColor: color, momentumDelta: mom));
           if (ev.cardType == _CardType.red) {
             offender.sentOff = true; teamA.selectedIds.remove(offender.id); teamB.selectedIds.remove(offender.id);
           } else if (ev.cardType == _CardType.yellow) {
@@ -179,7 +182,8 @@ class MatchEngine {
           }
           break;
         case _SeqType.injury:
-          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.injury, side: attackingTeamA ? 1 : -1));
+          final mom = (attackingTeamA ? -1.0 : 1.0) * EngineParams.momentumInjuryPenalty; // slight negative to side suffering the injury context
+          _controller.add(MatchEvent(minute, "$minute': ${ev.text}", scoreA, scoreB, xgA, xgB, kind: MatchEventKind.injury, side: attackingTeamA ? 1 : -1, momentumDelta: mom));
           final p = ev.injuredPlayer; if (p != null) { p.injured = true; teamA.selectedIds.remove(p.id); teamB.selectedIds.remove(p.id); }
           break;
       }
