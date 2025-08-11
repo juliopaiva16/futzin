@@ -1,3 +1,11 @@
+/// Standalone public helpers for graph engine probability computations.
+library;
+
+import 'dart:math';
+import 'engine_params.dart';
+import 'entities.dart';
+import 'match_engine.dart';
+
 /// MT5: Multi-feature xG model public helper
 class ShotModelFeatResult { final double xg; final double legacyXg; ShotModelFeatResult(this.xg,this.legacyXg); }
 
@@ -54,13 +62,6 @@ ShotModelFeatResult graphComputeMultiFeatureXg({
   if (forcedFallback) xg *= EngineParams.graphFallbackLongShotXgRel;
   return ShotModelFeatResult(xg, legacyXg);
 }
-/// Standalone public helpers for graph engine probability computations.
-library;
-
-import 'dart:math';
-import 'engine_params.dart';
-import 'entities.dart';
-import 'match_engine.dart';
 
 // Multi-defender interception probability (Phase 3 model v2)
 double graphMultiDefInterceptProb(Player from, Player to, Iterable<Player> defenders) {

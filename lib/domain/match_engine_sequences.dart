@@ -1,7 +1,5 @@
 part of 'match_engine.dart';
 
-import 'dart:math'; // for sqrt in MT5 xG pressure calculation
-
 enum _GraphAction { shortPass, dribble, longPass, backPass, hold, launch }
 
 // Legacy attacking sequence builder

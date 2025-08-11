@@ -1,0 +1,10 @@
+id: engine-core
+title: Engine graph + legacy convergence
+status: DOING
+updated: 2025-08-11
+owner: core
+deps: []
+metrics: { pass_pct: 71.9, xg_avg: 2.40, goals_avg: 2.38, dribble_att: 3.8, dribble_succ_pct: 50.5 }
+notes: |
+  Phases 1-3 DONE; phase4-6 tuning; multi-feature xG integrated; forced shots added
+next: [stamina-integration-final, pass-success-raise, xg-scale-align]

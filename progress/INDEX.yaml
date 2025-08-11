@@ -1,0 +1,17 @@
+# Master index of progress YAML IDs → file paths (alphabetical by id)
+# Keep this list sorted; each id must be unique.
+items:
+  - id: abilities-system
+    file: abilities.yaml
+  - id: calibration-pipeline
+    file: calibration.yaml
+  - id: engine-core
+    file: engine.yaml
+  - id: meta-game-loop
+    file: meta_game.yaml
+  - id: player-generation
+    file: player_generation.yaml
+  - id: project-backlog
+    file: backlog.yaml
+  - id: risk-register
+    file: risks.yaml

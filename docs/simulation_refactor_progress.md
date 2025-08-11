@@ -1,4 +1,7 @@
-# Monitoramento Refactor Engine (Graph Model)
+# (DEPRECATED) Monitoramento Refactor Engine (Graph Model)
+
+Substituído pelos arquivos YAML em `progress/` (ver `progress/INDEX.yaml`).
+Não atualizar este arquivo; manter somente como referência histórica compacta.
 
 Este arquivo acompanha a execução da proposta em `simulation_refactor_proposal.md`.
 Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).

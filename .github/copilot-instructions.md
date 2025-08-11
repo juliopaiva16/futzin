@@ -1,137 +1,213 @@
-# Copilot Instructions for Futzin
+# Futzin – Copilot & LLM Guide (Slim)
 
-This repo is a Flutter (Dart) football match simulator. The core loop simulates minutes, emits structured events, and renders a pitch + momentum chart. Use these notes to be productive quickly.
+Purpose: enable humans/LLMs to (a) navigate the project, (b) preserve architecture & standards, (c) operate the Markdown + YAML progress system. Compact, idempotent, diff‑friendly.
 
-## Architecture map
-- Domain (lib/domain)
-  - entities.dart: Player, TeamConfig, Tactics, Formation. Lineup rules (exact 1 GK, counts per formation), autosub state, JSON (de)serialization and persistence helpers.
-  - match_engine.dart: Simulation engine. Emits `MatchEvent` via a broadcast stream while a `Timer` advances minutes. Contains event types (info/shot/goal/card/injury), possession accumulation, xG, speed control (`setSpeed`).
-  - messages.dart: `MatchMessages` abstraction for localized engine strings.
-- Presentation (lib/presentation)
-  - pages/home_page.dart: UI shell. Generates squads, persists state with shared_preferences, wires engine -> UI, speed selector, share log.
-  - widgets/pitch_widget.dart: CustomPainter drawing players (A left→right, B right→left). Honors `Tactics.lineHeight` and `Tactics.width`. Supports midfield split rows via `Formation.midRows` (e.g., 4-2-3-1 = [2,3]).
-  - widgets/momentum_chart.dart: CustomPainter aggregating per-minute momentum and markers (goal/shot/card/injury). Uses smoothed weights and draws filled blue/red areas.
-- Core (lib/core)
-  - localization/app_localizations.dart: re-export of generated l10n (EN/PT).
-- l10n
-  - l10n.yaml config. ARB files under lib/l10n. Generated output in lib/l10n/generated with `synthetic-package: false`.
+---
+## 1. REPO MAP (SOURCE OF TRUTH)
+Domain: `lib/domain/`
+- `entities.dart` (Player/Team/Tactics/Formation, JSON, lineup rules)
+- `engine_params.dart` (all tunables centralized)
+- `match_engine.dart` (legacy minute → events engine)
+- `graph_engine.dart` + helpers (`match_engine_sequences.dart`, `match_engine_utils.dart`, `match_engine_types.dart`) (graph micro‑actions engine)
+- `messages.dart` (localized engine strings adapter)
+Presentation: `lib/presentation/`
+- `pages/` (shell, market, match view)
+- `widgets/` (pitch, momentum chart)
+Core: `lib/core/localization/` (l10n bridge)
+Localization: `lib/l10n/*.arb` (en/pt) → generated `lib/l10n/generated/` (do not edit)
+Tests: `test/`
+Docs: `docs/` (concepts, formulas, concise guides)
+Progress: `progress/` (YAML live status files)
 
-## Engine details you’ll need
-- Minute loop: calm vs attacking minute determined by `tempo`-weighted probability. Calm → 50/50 possession. Attacking → choose side based on `attackAdj/defenseAdj` comparison.
-- Ratings:
-  - Attack ≈ FWD ATT (1.0) + MID ATT (0.65) + DEF ATT (0.2), adjusted by bias/width/line.
-  - Defense ≈ DEF DEF (1.0) + MID DEF (0.55) + GK DEF (1.2) + FWD DEF (0.1), adjusted by bias/width/line and pressing (+6.0).
-  - Stamina effect: eff = base × (0.60 + 0.40 × stamina/100). Fatigue per minute increases with `tempo` and `pressing`.
-- Events carry visualization metadata: `MatchEvent.kind`, `side` (+1 A / −1 B / 0 neutral), `shotXg`, `cardColor`. Cards are attributed to the defending side for momentum markers.
-- Possession heuristic: calm minute ~30s each; attacking minute ~20–60s, ~65% to attacker.
-- Speed control: `_baseTickMs = 450`, `setSpeed(0.25..10x)` resets the timer.
+---
+## 2. DOC & YAML SYSTEM
+Planned layout:
+```
+docs/
+  overview.md
+  architecture.md
+  engine_legacy.md
+  engine_graph.md
+  engine_xg_model.md
+  stamina_momentum.md
+  player_generation.md
+  abilities.md
+  meta_loop.md
+  testing_calibration.md
+  glossary.md
+progress/
+  INDEX.yaml
+  engine.yaml
+  player_generation.yaml
+  abilities.yaml
+  meta_game.yaml
+  calibration.yaml
+  backlog.yaml
+  risks.yaml
+```
+Purpose:
+- Markdown = stable explanation / formulas / rationale.
+- YAML = living state (phase, metrics, dates, deps).
 
-## UI patterns
-- Momentum chart: denser sampling per minute (4 samples), stronger vertical scale, markers jittered/staggered to reduce overlap. Use `withValues(alpha: ...)` (not deprecated `.withOpacity`). Ensure all math produces `double` (cast/clamp where needed) to avoid num→double analyzer errors.
-- Pitch layout: compute X factors per line; use `lineHeight` to shift DEF/FWD and `width` to spread vertically. Midfield split via `formation.midRows`.
-- Home page: keep AppBar compact (icon buttons) to avoid RenderFlex overflow. Share via `SharePlus.instance.share(ShareParams(...))`.
+YAML KEY CONVENTION (fixed order for clean diffs):
+```
+id: unique-slug
+title: Short
+status: TODO|DOING|TUNE|DONE|DEFER|DROP
+updated: YYYY-MM-DD
+owner: handle|bot|team
+deps: [ids]
+metrics: { key: value }
+notes: |
+  Short line 1
+  Short line 2
+risks: [id1, id2]
+next: [step1, step2]
+```
+Rules:
+- Always bump `updated` when any other field changes.
+- Never delete critical history: move it into `notes:` (short lines; no long paragraphs).
+- Valid status transitions: TODO→DOING→(TUNE|DONE|DEFER). TUNE→DONE allowed. DEFER→TODO allowed.
+- Numeric metrics: floats 3 decimals (2.457). Percent without % (83.2).
+- IDs kebab-case; file names snake_case.
 
-## Workflows
-- Run: `flutter pub get`, then `flutter run -d chrome|android|ios|macos|linux|windows`.
-- Analyze: `flutter analyze` (repo kept clean). Format with `dart format .`.
-- Tests: `flutter test` (add unit tests for engine probabilities/momentum if you change math).
-- i18n: Update ARB in `lib/l10n/*.arb`. `l10n.yaml` outputs to `lib/l10n/generated`. Access via `AppLocalizations.of(context)` and provide `_FlutterMatchMessages` to the engine.
-- Persistence: lineups saved to SharedPreferences key `futsim_state_v1` as JSON (see HomePage `_saveState()`).
+INDEX.yaml:
+- Ordered list of all IDs + file path (fast LLM lookup).
+- Keep alphabetical.
 
-## Conventions & gotchas
-- Domain enum names are uppercase (GK/DEF/MID/FWD); analyzer ignore is documented in entities.dart.
-- Do not modify generated files under `lib/l10n/generated`.
-- Avoid using `withOpacity()` (deprecated in this SDK); prefer `withValues(alpha: ...)`.
-- For random usage on web, avoid large `nextInt` ranges (prior fix: use small bounds like 1e6 for IDs).
-- When editing painters, cast/clamp numeric values to double to satisfy `Offset`/Canvas APIs.
+Backlog & Risks:
+- `backlog.yaml`: not-started items (reduced schema: id,title,why,next).
+- `risks.yaml`: id, desc, impact(1-5), likelihood(1-5), mitigation, owner, updated.
 
-## Extension points
-- Tuning probabilities in `match_engine.dart` (eventChance, pass/intercept/foul odds, xG, GK save factor).
-- Add formations by extending `Formation.formations` (optionally set `midRows`).
-- Add auto-subs logic in `TeamConfig`/engine; expand event kinds; add extra time/penalties.
+Update Process (PR Checklist):
+1. Code changed? Sync affected metrics in YAML.
+2. New concept? Add short MD doc + INDEX entry.
+3. Model param changed? Update `engine_params.dart` + doc reference.
+4. Run `flutter analyze` + tests.
+5. Commit prefix: `[engine]`, `[graph]`, `[docs]`, `[progress]`, `[meta]`.
 
-## File beacons
-- Engine: `lib/domain/match_engine.dart` (minute loop, events, possession, speed)
-- Entities: `lib/domain/entities.dart` (formation, tactics, team)
-- UI wiring: `lib/presentation/pages/home_page.dart`
-- Painters: `lib/presentation/widgets/{pitch_widget,momentum_chart}.dart`
+---
+## 3. ARCHITECTURE & DESIGN PRINCIPLES
+Separation:
+- Pure domain (no Flutter) under `lib/domain`.
+- UI consumes domain via objects/streams; no simulation logic in widgets.
+Parameters:
+- All tunables only in `engine_params.dart` (ban magic numbers in loops).
+Engines:
+- Legacy kept until final phase; graph engine behind a flag (e.g. `useGraphEngine`).
+Events:
+- Public interface stable (`MatchEvent`) — new fields optional.
+Localization:
+- Engine strings through `MatchMessages`; no raw literals in logic.
+Light immutability:
+- Prefer const/final; encapsulate mutation.
 
-Keep changes small and run `flutter analyze` after edits. If adding UI text, update both ARB files.
+---
+## 4. DART CODING STANDARDS
+Doc comments: `///` for public classes/methods/enums/critical static fields.
+Inline `//` for (1) section headers, (2) brief rationale, (3) TODO(tag:short).
+Formatting: `dart format .` before commit.
+Lints: keep `flutter analyze` clean.
+Naming:
+- Classes CamelCase; methods camelCase; globals/const SCREAMING_SNAKE.
+- Files: snake_case.
+Numeric constants: only in `engine_params.dart` (or clearly derived locals).
+Random: keep ranges modest (web friendly) & allow seed injection for tests.
+Clamps: apply before exposing stats (xG, probabilities, stamina) to protect invariants.
 
-## Graph Engine Refactor (2025)
-A nova engine baseada em grafo será desenvolvida incrementalmente em paralelo à atual (`match_engine.dart`). Consulte:
-- Proposta: `docs/simulation_refactor_proposal.md`
-- Progresso: `docs/simulation_refactor_progress.md`
-- Habilidades & Roles: `docs/abilities_and_roles.md`
+---
+## 5. ENGINE SUMMARY
+Legacy: minute → (calm|attacking) → events; baseline & regression harness.
+Graph: micro actions (pass, dribble, long, back, hold, launch, shot) with probabilities from positions + abilities + multi-def intercept.
+Multi-feature xG: distance, angle, pressure, assist type, fallback penalty blended with legacy weight.
+Forced Shot: triggers (stagnation count, post-dribble immediate) parameterized.
+Stamina: minute decay + position modifiers + ENG ability.
+Momentum: aggregate action contributions into bars/area (central params).
 
-### Objetivo resumido
-Migrar de sequência sintética de eventos para micro-decisions dirigidas por um grafo (jogadores = nós, passes = arestas), preservando interface de eventos (`MatchEvent`).
+---
+## 6. PLAYER & ABILITIES
+Generation: correlated tiers (1..4), height, preferred foot, limited abilities.
+Implemented abilities: VIS, PAS, DRB, FIN, WALL, CAT, CAP, ENG.
+Pending/future effects: MRK, HDR, SPR, CLT, AER, REF, COM.
+Rule: never double-apply same buff (e.g. FIN only at final pGoal stage if chosen).
 
-### Fases (marcar no arquivo de progresso ao concluir)
-1. Role enum + coordenadas de jogadores (nenhuma mudança lógica externa).
-2. Micro motor simples (passes curtos + chute) opcional via flag experimental.
-3. Arestas ponderadas + interceptação multi-defensor.
-4. Ações adicionais (drible, passe longo, recuar, manter, lançamento) + softmax.
-5. Habilidades integradas (passes, drible, finalização, defesa).
-6. Novo modelo de stamina & recalibração ratings.
-7. Tuning momentum/xG para manter ranges.
-8. Flag e UI toggle (Experimental Graph Engine).
-9. Remoção engine antiga após validação.
+---
+## 7. TESTING & CALIBRATION
+Always add tests for: new probabilities, multi-def intercept, ability effects.
+Batch sim target ranges:
+- xG total: 2.4–3.2
+- Pass %: 75–88
+- Dribbles: 8–25
+- Intercepts: 35–65
+If out of range → adjust only via `engine_params.dart` & update `engine.yaml` metrics.
 
-### Orientações de Implementação
-- Criar novo módulo `lib/domain/graph_engine.dart` (não modificar engine antiga até fase 5+ estar estável).
-- Introduzir `Role` e campo `role` no `Player` com backward compat no JSON (atribuir default baseado em macro posição se ausente).
-- Centralizar parâmetros em classe `EngineParams` (um arquivo dedicado ex: `lib/domain/engine_params.dart`).
-- Cada alteração estrutural deve atualizar `docs/simulation_refactor_progress.md` (status + data).
-- Manter clamps estritos (xg, pGoal, stamina) conforme proposta para evitar regressões estatísticas.
-- Habilidades (abilities) existentes + novas: mapear códigos → efeitos em fases (arestas, scoring, resolução). Evitar aplicar o mesmo buff duas vezes (ex: FIN só em pGoal pós-save, não em xg_raw se escolhido assim no progresso).
-- Sempre rodar `flutter analyze` e adicionar testes unitários para: seleção de ação monotônica, intercept multi-defensor, efeitos de habilidades (VIS reduz intercept ~10% relativo, FIN aumenta pGoal dentro do cap, ENG stamina retention).
-- Evitar quedas de performance: batch micro-ticks em eventos logados; não recalcular todas as arestas a cada tick se não houve movimento relevante (usar throttle ou dirty flags de posição).
-- UI: manter compat com `MatchEvent`; novos campos (ex: coordenadas chute) podem ser adicionados futuramente mas devem ficar opcionais.
+---
+## 8. WORKFLOW (SHORT)
+Run: `flutter pub get` → `flutter run -d chrome` (or other device)
+Analyze: `flutter analyze`
+Format: `dart format .`
+Test: `flutter test`
+Perf tuning: run batch sim separately (avoid blocking UI).
 
-### Testes & Métricas
-Durante tuning, produzir batch de simulações (≥200 jogos) para comparar: xG total (meta 2.4–3.2), % passe (75–88%), dribles (8–25), intercepts (35–65). Ajustar parâmetros em bloco único (EngineParams) para facilitar iteração.
+---
+## 9. LLM / AGENT PLAYBOOK
+1. Read `progress/INDEX.yaml` for ID map.
+2. Open target YAML; apply minimal diffs (preserve key order).
+3. Check matching Markdown doc for needed formula/name updates.
+4. Run `flutter analyze` after domain changes.
+5. Update `updated:` + succinct notes (<100 chars/line).
+6. Avoid duplication: YAML = state; MD = explanation.
 
-### Segurança / Retrocompat
-- Guardar versão de estado (ex: `futsim_state_version: 2`). Se ausente, assumir engine antiga e atribuir roles padrão.
-- Não quebrar persistência de `futsim_state_v1` até migração final; apenas estender.
+---
+## 10. COMMIT CHECKLIST
+[ ] Build & analyze clean
+[ ] Tests green / added
+[ ] Param changes centralized
+[ ] YAML state synced (updated + metrics)
+[ ] INDEX.yaml updated (if new IDs)
+[ ] Markdown reflects new formulas
+[ ] Names & comments follow standards
 
-### Checklist rápido por PR
-1. Atualizou progresso? (docs/simulation_refactor_progress.md)
-2. Adicionou/ajustou testes? (`test/`)
-3. Rodou `flutter analyze` sem warnings novos?
-4. Respeitou clamps e não duplicou buffs de habilidades?
-5. Código isolado por feature flag se fase < 8?
+---
+## 11. QUICK GLOSSARY (MIN)
+TUNE = functional but calibrating.
+Stagnation = repeated non-progress actions causing forced shot.
+Fallback Shot = low-quality shot triggered by stagnation.
+Blend XG = multi-feature + legacy mix.
 
-## MCP Tooling & Agent Behavior (Meta)
-Estas orientações complementam o fluxo existente para garantir uso consistente das ferramentas MCP disponíveis.
+---
+## 12. DO NOT
+- Add magic numbers outside `engine_params.dart`.
+- Edit generated files (l10n/generated).
+- Add mandatory JSON fields without default/back-compat.
+- Duplicate logic across legacy & graph (factor helpers instead).
 
-### Princípios
-- Sempre que uma resposta exigir: (a) raciocínio multi‑etapas não trivial, (b) planejamento de implementação, (c) decomposição de requisitos ambíguos → invocar o mecanismo de pensamento sequencial (`mcp_sequentialthinking`).
-- Antes de assumir contexto não confirmado do repositório, preferir busca/leituras: usar buscas semânticas ou greps (ferramentas padrão) e, para conhecimento externo, extensões MCP relevantes.
-- Após decisões de arquitetura, criação/alteração de entidades, parâmetros, ou conclusões de análises significativas → persistir resumo na memória usando os endpoints `mcp_memory_*` (create_entities / add_observations / create_relations). Garantir que observações sejam curtas, factuais e versionadas se necessário.
+---
+## 13. YAML EXAMPLE
+```
+id: graph-engine-phase4
+title: Additional actions softmax
+status: TUNE
+updated: 2025-08-11
+owner: core
+deps: [graph-engine-phase3]
+metrics: { pass_pct: 82.1, xg_avg: 2.73 }
+notes: |
+  Softmax weights adjusted; intercept spike control WIP
+next: [stamina-integration, ability-fin-calibration]
+```
 
-### Uso das Ferramentas MCP
-- Context / Documentação Externa: se precisar de documentação de libs, resolver ID com `mcp_context7_resolve-library-id` e depois `mcp_context7_get-library-docs` focando tópico específico.
-- Repositórios Externos (análise de design): usar deepwiki (`mcp_deepwiki_*`) para perguntas estruturadas em vez de copiar código.
-- Navegação / Interação Web (prototipagem, verificação visual): usar playwright (`mcp_playwright_browser_*`). Encerrar abas/sessões ao final para evitar resíduos.
-- Memória de Projeto: cada feature concluída ou decisão chave → `mcp_memory_add_observations`; relações entre conceitos (ex: PlayerNode -> Role influences) → `mcp_memory_create_relations`.
-- Revisões: atualizar ou remover observações obsoletas com `mcp_memory_delete_observations` / `mcp_memory_delete_entities` para manter memória limpa.
+---
+## 14. QUICK LOCATION SHORTCUTS
+Engine params: `engine_params.dart`
+Graph loop: `match_engine_sequences.dart` (sequencing) + `graph_engine.dart` (orchestration)
+XG helpers: `graph_public_helpers.dart`
+Player gen: `player_factory.dart`
+Pitch UI: `pitch_widget.dart`
+Momentum chart: `momentum_chart.dart`
 
-### Sequência Recomendada de Resposta
-1. (Opcional) Pensamento inicial curto → chamar sequential thinking para expandir plano.
-2. Reunir contexto faltante (buscas ou docs) antes de editar.
-3. Aplicar mudanças mínimas (atomic commits) conforme instruções principais do arquivo.
-4. Atualizar arquivos de progresso / docs quando impactados.
-5. Persistir snapshot conciso das decisões na memória MCP.
-6. Responder ao usuário de forma curta, confirmando próximos passos.
+---
+## 15. FUTURE EVOLUTION (TRACK IN YAML)
+- Set pieces, transitions, dynamic tactics, xT grid, advanced abilities, meta loop (season, economy, packs), statistical tests.
 
-### Boas Práticas
-- Não duplicar persistência: só adicionar observações novas ou mutações relevantes.
-- Evitar armazenar trechos extensos de código na memória; preferir descrições.
-- Marcar cada observação com contexto temporal (ex: `2025-08-09: Phase1 PlayerNode added`).
-- Reavaliar necessidade de novo bloco sequential thinking antes de grandes refactors subsequentes.
-
-### Limites
-- Se uma ferramenta não retornar dados esperados, relatar e sugerir alternativa antes de prosseguir.
-- Manter aderência às políticas (sem conteúdo sensível / licenças infringidas) mesmo durante coleta via MCP.
+End.

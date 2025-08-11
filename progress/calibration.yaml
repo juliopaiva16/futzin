@@ -1,0 +1,10 @@
+id: calibration-pipeline
+title: Metrics batch & divergence
+status: TODO
+updated: 2025-08-11
+owner: core
+deps: [engine-core]
+metrics: { batch_runs: 0 }
+notes: |
+  Need automated batch script wiring & divergence scoring
+next: [define-divergence-fn, add-test-harness, baseline-export]

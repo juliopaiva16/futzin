@@ -24,7 +24,6 @@ class GraphActionLog {
   final bool isGoal;
   final double? passDist;
   final double? pressureScore; // placeholder (future)
-  final String? bodyPart; // MT5+ placeholder: 'foot','head','other'
 
   GraphActionLog({
     required this.matchId,
@@ -45,7 +44,6 @@ class GraphActionLog {
     this.isGoal = false,
     this.passDist,
     this.pressureScore,
-  this.bodyPart,
     this.bodyPart,
   });
 

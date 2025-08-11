@@ -1,0 +1,10 @@
+id: meta-game-loop
+title: Season & economy loop
+status: TODO
+updated: 2025-08-11
+owner: core
+deps: [player-generation]
+metrics: { seasons_impl: 0 }
+notes: |
+  No season/economy yet; market basic only
+next: [design-pack-draft, currency-model, persistence-schema-v2]

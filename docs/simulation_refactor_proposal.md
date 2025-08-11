@@ -1,4 +1,12 @@
-# Proposta de Refatoração da Engine de Simulação (Modelo de Grafo)
+# (DEPRECATED) Proposta de Refatoração da Engine de Simulação (Modelo de Grafo)
+
+Este documento foi substituído pelos arquivos segmentados em `docs/`:
+- `engine_graph.md` (pipeline)
+- `engine_xg_model.md` (xG features)
+- `abilities.md` (habilidades)
+- `testing_calibration.md` (métricas)
+
+Mantido apenas para histórico. Não atualizar conteúdo abaixo; futuras mudanças devem ir aos novos arquivos.
 
 Este documento descreve uma refatoração da engine para um modelo baseado em teoria de grafos, integrando micro categorias (roles) e habilidades especiais, mantendo simplicidade lúdica e previsibilidade controlada. Estruturado para implementação incremental.
 
@@ -293,4 +301,4 @@ class EngineParams {
 Modelo de grafo fornece flexibilidade e transparência; abordagem incremental reduz risco; parametrização central facilita balance. Após estabilização estatística, engine antiga pode ser deprecada com flag de fallback temporária.
 
 ---
-(Documento vivo — atualizar conforme tuning real.)
+(Documento histórico — não atualizar.)

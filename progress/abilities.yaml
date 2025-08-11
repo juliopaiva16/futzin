@@ -1,0 +1,10 @@
+id: abilities-system
+title: Abilities effects rollout
+status: TUNE
+updated: 2025-08-11
+owner: core
+deps: [engine-core]
+metrics: { implemented: 8, pending: 7 }
+notes: |
+  Core set active (VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG); placeholders for MRK,AER,REF,COM,HDR,CLT,SPR
+next: [implement-mrk-hdr-ref, clamp-stack-validation]

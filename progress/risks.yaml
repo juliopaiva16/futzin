@@ -1,0 +1,22 @@
+# Risk register
+- id: tuning-complexity-spike
+  desc: Parameter space grows faster than tests
+  impact: 4
+  likelihood: 3
+  mitigation: Central param file + batch scripts + add tests per new lever
+  owner: core
+  updated: 2025-08-11
+- id: web-performance-microticks
+  desc: Graph micro-ticks may degrade web FPS
+  impact: 3
+  likelihood: 3
+  mitigation: Batch aggregation + throttle + measure paint time
+  owner: core
+  updated: 2025-08-11
+- id: ability-power-creep
+  desc: New abilities overshoot balance
+  impact: 4
+  likelihood: 2
+  mitigation: Clamp stages, staged rollout, comparative batch metrics
+  owner: core
+  updated: 2025-08-11

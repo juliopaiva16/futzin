@@ -1,0 +1,10 @@
+id: player-generation
+title: Tiered player factory
+status: DOING
+updated: 2025-08-11
+owner: core
+deps: []
+metrics: { tiers_impl: 4, abilities_impl: 8 }
+notes: |
+  Height/foot/tier fields live; correlated attributes baseline
+next: [add-advanced-ability-hooks, balance-tier-distribution]

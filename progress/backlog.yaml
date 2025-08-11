@@ -1,0 +1,21 @@
+# Backlog items (not started). Reduced schema.
+- id: set-pieces-basic
+  title: Basic set pieces (corner, FK)
+  why: Increase realism & ability hooks (HDR/AER)
+  next: [design-events, param-spec]
+- id: transitions-counter
+  title: Transition/counter model
+  why: Reward intercept high presses
+  next: [define-trigger, momentum-impact]
+- id: dynamic-tactics
+  title: Dynamic tactics by game state
+  why: Adaptive realism & comeback patterns
+  next: [spec-inputs, param-matrix]
+- id: stamina-micro
+  title: Micro stamina event costs
+  why: ENG balance & action pacing
+  next: [list-action-costs, integrate-logger]
+- id: xt-grid-model
+  title: Expected Threat grid
+  why: Spatial value alignment
+  next: [grid-size-finalize, logging-hooks]

@@ -1,4 +1,6 @@
-## REFRACTOR_STATE_V1
+## (DEPRECATED) REFRACTOR_STATE_V1
+
+Este snapshot foi substituído pelo novo sistema YAML em `progress/`. Consultar `progress/engine.yaml`, `progress/abilities.yaml`, etc.
 version: 1
 generated_utc: 2025-08-10T00:00:00Z
 
