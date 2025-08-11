@@ -163,6 +163,7 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-11 | 6 | Implementados: fallback forced shot, post-dribble shot chance, intercept/xG param adjustments (itens backlog 11-15 parciais) | TUNE |
 | 2025-08-11 | MT2 | Player generation: adicionados heightCm, preferredFoot, tier (parcial) | DOING |
 | 2025-08-11 | MT2 | PlayerFactory com atributos correlacionados + testes | DOING |
+| 2025-08-11 | MT3 | Dynamic shot volume controls (post-dribble prob + forced shot logic) | DOING |
 | 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
 | 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 

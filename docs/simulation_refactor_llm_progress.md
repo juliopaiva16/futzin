@@ -50,8 +50,9 @@ macro_topics:
   delivered: [height_cm,preferred_foot,tier,correlated_attributes]
   pending: []
   - id: MT3_shot_volume_controls
-    status: TODO
-    levers: [fallback_shot,post_dribble_shot_chance]
+  status: DOING
+  levers: [fallback_shot,post_dribble_shot_chance,forced_shot_stagnation]
+  implemented: [post_dribble_dynamic_prob,fallback_forced_shot,stagnation_trigger]
   - id: MT4_pass_success_tuning
     status: TODO
     target_range: [0.75,0.82]

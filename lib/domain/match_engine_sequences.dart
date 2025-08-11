@@ -256,6 +256,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
   var carrier = pickStarter();
   final possessionId = eng._startPossession();
   int actionIndex = 0;
+  double lastShotProgressX = carrier.x ?? 0.5; // track net forward progress for forced shot logic
   double pressureFor(Player p) {
     double sum = 0; int n = 0;
     for (final d in defAlive) {
@@ -405,9 +406,15 @@ List<_SeqEvent> _buildGraphAttackSequence(
         // Backlog item 12: small chance of immediate shot post-dribble even if early
         final goalX = attackingTeamA ? 1.0 : 0.0;
         final dxGoal = (goalX - (carrier.x ?? 0.5)).abs();
-        if (dxGoal < EngineParams.graphPostDribbleShotMaxDist && rng.nextDouble() < EngineParams.graphPostDribbleShotProb) {
-          passesSoFar = max(passesSoFar, 2); // ensure early-shot dampening uses >=2 passes scaling
-          break; // proceed to shot phase
+        if (dxGoal < EngineParams.graphPostDribbleShotMaxDist) {
+          double p = EngineParams.graphPostDribbleShotProbBase;
+          if (dxGoal < EngineParams.graphPostDribbleShotDistNearGoal) {
+            p += EngineParams.graphPostDribbleShotProbNearGoalBonus;
+          }
+          if (rng.nextDouble() < p) {
+            passesSoFar = max(passesSoFar, 2); // ensure shot phase triggers
+            break;
+          }
         }
       } else {
         seq.add(_SeqEvent.text(messages.dribbleFail(carrier.name)));
@@ -459,7 +466,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
       interceptChance *= (1.0 + EngineParams.graphAbilityWallInterceptRel);
     }
 
-    if (longAttempt) {
+  if (longAttempt) {
       // Adjust success for long pass model: treat intercept chance as (1 - successLong)
       final baseSuccess = EngineParams.graphLongPassBaseSuccess;
       final norm = ((d - EngineParams.graphLongPassMinDist) / (EngineParams.passLongMaxDist - EngineParams.graphLongPassMinDist)).clamp(0.0, 1.0);
@@ -531,6 +538,13 @@ List<_SeqEvent> _buildGraphAttackSequence(
     }
 
   carrier = rec;
+  // Track forward progress (only x-axis toward goal)
+  final goalDir = attackingTeamA ? 1.0 : -1.0;
+  final currX = carrier.x ?? 0.5;
+  final deltaX = (currX - lastShotProgressX) * goalDir;
+  if (deltaX > EngineParams.graphForcedShotProgressThreshold) {
+    lastShotProgressX = currX; // register meaningful progress
+  }
   passesSoFar = i + 1;
   // Early shot trigger: if sufficiently advanced after >=2 iterations
   if (passesSoFar >= 2) {
@@ -564,8 +578,9 @@ List<_SeqEvent> _buildGraphAttackSequence(
       return seq;
     }
   }
-  // Backlog item 11: if loop exhausted with no break (i.e., reached max passes), allow fallback forced shot
-  final forcedFallback = passesSoFar >= maxPasses;
+  // Forced shot logic (MT3): forced if reached max passes OR stagnated after N passes without progress
+  final stagnated = EngineParams.graphForcedShotEnabled && passesSoFar >= EngineParams.graphForcedShotMinPasses && ((carrier.x ?? 0.5) - lastShotProgressX).abs() < 1e-6;
+  final forcedFallback = passesSoFar >= maxPasses || stagnated;
   seq.add(_SeqEvent.text(messages.shoots(carrier.name)));
   final goalX = attackingTeamA ? 1.0 : 0.0;
   final dxGoal = (goalX - (carrier.x ?? 0.5)).abs().clamp(0.0, 1.0);

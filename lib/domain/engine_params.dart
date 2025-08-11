@@ -162,9 +162,15 @@ class EngineParams {
   static const double graphEarlyShotProb = 0.40; // modest raise while retaining early pGoal dampening (Tuning6)
   static const double graphAbilityCapTeamAdj = 0.03; // CAP small team attack/defense adj
   // Post-dribble & fallback shot controls (Backlog items 11-13 partially)
-  static const double graphPostDribbleShotProb = 0.12; // chance of immediate shot after successful dribble
-  static const double graphPostDribbleShotMaxDist = 0.34; // allow if within this normalized dist to goal
-  static const double graphFallbackLongShotXgRel = 0.85; // damp xG for forced long shot after max passes
+  // MT3: dynamic post-dribble & forced shot controls
+  static const double graphPostDribbleShotProbBase = 0.10; // base chance of immediate shot after successful dribble
+  static const double graphPostDribbleShotProbNearGoalBonus = 0.07; // additive if very close
+  static const double graphPostDribbleShotMaxDist = 0.34; // within this dist eligible for immediate shot
+  static const double graphPostDribbleShotDistNearGoal = 0.18; // near-goal threshold for bonus
+  static const double graphFallbackLongShotXgRel = 0.85; // damp xG for forced long/low-quality shot
+  static const bool   graphForcedShotEnabled = true; // allow early forced shot if sequence stalls
+  static const int    graphForcedShotMinPasses = 4; // after this many passes without progress, force shot
+  static const double graphForcedShotProgressThreshold = 0.015; // min x progress to count as advancement
 
   // Phase 6 stamina model factors (minute-level decay components)
   static const double staminaTempoDecayFactor = 0.34; // scales tempo (0..1)
