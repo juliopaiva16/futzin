@@ -1,25 +1,3 @@
-import 'package:futzin/lib/domain/graph_public_helpers.dart';
-void main() {
-  test('MT5: pressure increases reduces featXg', () {
-    final carrier = Player(id: 'C', name: 'Carrier', pos: Position.FWD, attack: 80, defense: 40, stamina: 90, pace: 80, passing: 70, technique: 75, strength: 70, abilityCodes: []);
-    final def1 = Player(id: 'D1', name: 'Def1', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
-    final def2 = Player(id: 'D2', name: 'Def2', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
-    def1.x = 0.52; def1.y = 0.5; // close
-    def2.x = 0.54; def2.y = 0.5; // close
-    carrier.x = 0.5; carrier.y = 0.5;
-    final baseQual = 0.7;
-    final posFactor = 0.9;
-    final passesSoFar = 2;
-    final usedLong = 0;
-    final adaptiveBoost = false;
-    final forcedFallback = false;
-    final noDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
-    final oneDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
-    final twoDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1, def2], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
-    expect(noDef.xg > oneDef.xg, true);
-    expect(oneDef.xg > twoDef.xg, true);
-  });
-}
 import 'package:flutter_test/flutter_test.dart';
 import 'package:futzin/domain/entities.dart';
 import 'package:futzin/domain/match_engine.dart';
@@ -65,6 +43,25 @@ class _DummyMessages implements MatchMessages {
 }
 
 void main() {
+  test('MT5: pressure increases reduces featXg', () {
+    final carrier = Player(id: 'C', name: 'Carrier', pos: Position.FWD, attack: 80, defense: 40, stamina: 90, pace: 80, passing: 70, technique: 75, strength: 70, abilityCodes: []);
+    final def1 = Player(id: 'D1', name: 'Def1', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
+    final def2 = Player(id: 'D2', name: 'Def2', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
+    def1.x = 0.52; def1.y = 0.5; // close
+    def2.x = 0.54; def2.y = 0.5; // close
+    carrier.x = 0.5; carrier.y = 0.5;
+    final baseQual = 0.7;
+    final posFactor = 0.9;
+    final passesSoFar = 2;
+    final usedLong = 0;
+    final adaptiveBoost = false;
+    final forcedFallback = false;
+    final noDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    final oneDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    final twoDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1, def2], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    expect(noDef.xg > oneDef.xg, true);
+    expect(oneDef.xg > twoDef.xg, true);
+  });
   test('multi-defender intercept probability increases with more defenders', () {
     final passer = Player(id:'p1', name:'P1', pos:Position.MID, attack:60, defense:50, stamina:70, pace:60, passing:60, technique:60, strength:60);
     final recv = Player(id:'p2', name:'P2', pos:Position.MID, attack:60, defense:50, stamina:70, pace:60, passing:60, technique:60, strength:60);
@@ -122,6 +119,24 @@ void main() {
     // Expect relative reduction roughly within plausible target window (<20%)
     final rel = (costBase - costEng)/costBase;
     expect(rel, greaterThan(0.01));
+  });
+
+  test('ENG reduces total minute stamina loss including sprint micro-cost (MT6)', () {
+    final tactics = Tactics(tempo:0.8, pressing:0.8, attackBias:0.1);
+    final engPlayer = Player(id:'e2', name:'E2', pos:Position.MID, attack:60, defense:50, stamina:80, pace:60, passing:60, technique:60, strength:60, abilityCodes:['ENG']);
+    final basePlayer = Player(id:'b2', name:'B2', pos:Position.MID, attack:60, defense:50, stamina:80, pace:60, passing:60, technique:60, strength:60);
+    final baseCost = graphComputeMinuteFatigue(player: basePlayer, tactics: tactics);
+    final engCost = graphComputeMinuteFatigue(player: engPlayer, tactics: tactics);
+    // Approximate per-minute point loss as in engine: perMin*100/90 + microCostPoints
+    double pointsBase = (baseCost * 100 / 90);
+    double pointsEng = (engCost * 100 / 90);
+    // Add sprint micro-cost approximation
+    final sprintFactor = (0.35*tactics.tempo + 0.25*tactics.pressing).clamp(0.0, 1.0);
+    final microBase = EngineParams.staminaSprintCostDribble * sprintFactor;
+    final microEng = microBase * (1 - EngineParams.staminaSprintEngRel);
+    pointsBase += microBase;
+    pointsEng += microEng;
+    expect(pointsEng, lessThan(pointsBase));
   });
 
   test('MT4 intercept mitigation lowers chance for low tempo / high width', () {

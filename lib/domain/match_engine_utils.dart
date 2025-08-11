@@ -78,15 +78,40 @@ double _computeMinuteFatigue(Player p, TeamConfig t) {
     default:
       break;
   }
+  // Position modulators (MT6)
+  switch (p.pos) {
+    case Position.GK:
+      cost *= EngineParams.staminaPosDecayModGK; break;
+    case Position.DEF:
+      cost *= EngineParams.staminaPosDecayModDEF; break;
+    case Position.MID:
+      cost *= EngineParams.staminaPosDecayModMID; break;
+    case Position.FWD:
+      cost *= EngineParams.staminaPosDecayModFWD; break;
+  }
   return cost; // per-minute fraction of 1.0 stamina scale (0..100 later scaled)
 }
 
 // Fatigue and ratings helpers extracted for modularity.
 void _applyFatigue(TeamConfig t) {
+  // Base decay per minute by player
   for (final p in t.selected) {
     if (p.sentOff || p.injured) continue;
     final perMin = _computeMinuteFatigue(p, t);
     p.currentStamina = (p.currentStamina - perMin * 100 / 90).clamp(0, 100);
+  }
+  // MT6 sprint micro-cost hook (approx): attribute extra small costs for high-tempo/risky teams per minute
+  // Without micro-event counters per player yet, we approximate by taxing FWD/MID a small sprint cost proportional to tempo and pressing
+  final tempo = t.tactics.tempo.clamp(0.0, 1.0);
+  final pressing = t.tactics.pressing.clamp(0.0, 1.0);
+  final sprintFactor = (0.35*tempo + 0.25*pressing).clamp(0.0, 1.0);
+  for (final p in t.selected) {
+    if (p.sentOff || p.injured) continue;
+    // Heuristic: dribble/pressing roles sprint more (MIDs/FWDs)
+    double micro = 0.0;
+    if (p.pos == Position.MID || p.pos == Position.FWD) micro = EngineParams.staminaSprintCostDribble * sprintFactor;
+    if (p.hasAbility('ENG')) micro *= (1 - EngineParams.staminaSprintEngRel);
+    if (micro > 0) p.currentStamina = (p.currentStamina - micro).clamp(0, 100);
   }
 }
 

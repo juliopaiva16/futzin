@@ -207,4 +207,13 @@ class EngineParams {
   static const double staminaRiskProxyFactor = 0.12; // proxy for risky actions (long/dribble/launch) until micro-tracking
   // Logging (MT1) 0=off 1=summary 2=detailed (future expansion)
   static const int graphLoggingMode = 1;
+
+  // MT6: Stamina position modulators and sprint micro-cost hook
+  static const double staminaPosDecayModGK = 0.92; // GK generally run less
+  static const double staminaPosDecayModDEF = 1.00;
+  static const double staminaPosDecayModMID = 1.06; // mids cover more ground
+  static const double staminaPosDecayModFWD = 1.02; // forwards press/sprint bursts
+  // Micro-costs (absolute stamina points deducted per action)
+  static const double staminaSprintCostDribble = 0.45; // per dribble attempt (success or fail)
+  static const double staminaSprintEngRel = 0.15; // ENG reduces sprint micro-cost relatively
 }
