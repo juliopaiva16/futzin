@@ -1,5 +1,7 @@
 part of 'match_engine.dart';
 
+import 'dart:math'; // for sqrt in MT5 xG pressure calculation
+
 enum _GraphAction { shortPass, dribble, longPass, backPass, hold, launch }
 
 // Legacy attacking sequence builder
@@ -622,13 +624,66 @@ List<_SeqEvent> _buildGraphAttackSequence(
   final dxGoal = (goalX - (carrier.x ?? 0.5)).abs().clamp(0.0, 1.0);
   final baseQual = atkRat.attackAdj / (atkRat.attackAdj + defRat.defenseAdj + 1e-6);
   final posFactor = (1.0 - dxGoal);
-  double xg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor) +
+  // Legacy base xG (kept for blending stability)
+  double legacyXg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor) +
       (rng.nextDouble() * EngineParams.graphXgRandomRange - EngineParams.graphXgRandomRange / 2);
-  xg = xg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
-  if (forcedFallback) {
-    // Apply dampening for low-quality rushed shot
-    xg *= EngineParams.graphFallbackLongShotXgRel;
+  legacyXg = legacyXg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  // MT5 multi-feature xG model (guarded by flag)
+  // Features: distance (posFactor), angle (approx using y deviation), pressure (nearby defenders), assist type (based on last action), forced penalty
+  final carrierY = (carrier.y ?? 0.5).clamp(0.0, 1.0);
+  // Angle proxy: central shots (y near 0.5) higher value
+  final angleCentrality = 1.0 - ( (carrierY - 0.5).abs() * 2.0 ).clamp(0.0, 1.0); // 1 center, 0 edge
+  // Pressure approximation: count defenders within radius in graph context (defAlive list already present earlier). Use simple distance.
+  double pressureScore = 0.0;
+  if (defAlive.isNotEmpty) {
+    int nearby = 0;
+    double weighted = 0.0;
+    for (final dPlayer in defAlive) {
+      final dx = ((dPlayer.x ?? 0.5) - (carrier.x ?? 0.5));
+      final dy = ((dPlayer.y ?? 0.5) - (carrier.y ?? 0.5));
+  final distD = sqrt(dx*dx + dy*dy);
+      if (distD < EngineParams.graphXgFeatPressureRadius) nearby++;
+      if (distD < EngineParams.graphXgFeatPressureRadius) weighted += (dPlayer.defense/100.0) * EngineParams.graphXgFeatPressureDefenseWeight;
+    }
+    if (nearby>0) {
+      pressureScore = ((nearby * EngineParams.graphXgFeatPressurePerDef) * (1.0 + (weighted/nearby)*0.25)).clamp(0.0, 1.0);
+    }
   }
+  // Assist type heuristics: Inspect last successful pass attempt type if passesSoFar>0, or dribble event just before break (adaptiveBoost flag used when dribble success earlier)
+  double assistAdj = 0.0;
+  if (passesSoFar > 0) {
+    if (usedLong > 0) {
+      assistAdj += EngineParams.graphXgFeatAssistLongPenalty;
+    } else if (passesSoFar == 1) {
+      assistAdj += EngineParams.graphXgFeatAssistShortBonus; // quick combination
+    } else {
+      assistAdj += EngineParams.graphXgFeatAssistShortBonus * 0.5; // modest chain credit
+    }
+  }
+  if (adaptiveBoost) { // indicates prior risky action consolidation, dribble success earlier flagged this
+    assistAdj += EngineParams.graphXgFeatAssistDribbleBonus;
+  }
+  if (forcedFallback) {
+    assistAdj += EngineParams.graphXgFeatForcedShotPenalty;
+  }
+  // Compose raw feature xg
+  double featXg = EngineParams.graphXgFeatBase;
+  featXg += EngineParams.graphXgFeatDistanceWeight * posFactor; // distance quality (already directional)
+  featXg += EngineParams.graphXgFeatAngleWeight * angleCentrality;
+  // Pressure applied multiplicatively as reduction
+  featXg *= (1.0 - EngineParams.graphXgFeatPressureWeight * pressureScore);
+  featXg += assistAdj;
+  featXg *= EngineParams.graphXgFeatScaling;
+  // Blend with legacy for stability (short-term) then clamp
+  double xg;
+  if (EngineParams.graphXgUseMultiFeature) {
+    xg = (EngineParams.graphXgFeatBlendLegacy * legacyXg + (1 - EngineParams.graphXgFeatBlendLegacy) * featXg)
+        .clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  } else {
+    xg = legacyXg;
+  }
+  // Legacy forced fallback dampening applied after blend for consistency
+  if (forcedFallback) xg *= EngineParams.graphFallbackLongShotXgRel;
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
   // Adjusted base multiplier 0.95 -> 0.92 to reduce overall conversion. GK save factor unchanged here.
   double pGoal = (xg * (0.85 - EngineParams.graphGoalGkSaveFactor * gkSave * 1.10)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax); // stronger GK influence (Tuning6)

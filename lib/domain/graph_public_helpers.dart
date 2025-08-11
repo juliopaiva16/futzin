@@ -1,3 +1,59 @@
+/// MT5: Multi-feature xG model public helper
+class ShotModelFeatResult { final double xg; final double legacyXg; ShotModelFeatResult(this.xg,this.legacyXg); }
+
+ShotModelFeatResult graphComputeMultiFeatureXg({
+  required Player carrier,
+  required Iterable<Player> defAlive,
+  required double baseQual,
+  required double posFactor,
+  required bool adaptiveBoost,
+  required bool forcedFallback,
+  required int usedLong,
+  required int passesSoFar,
+  double? carrierY,
+}) {
+  carrierY ??= (carrier.y ?? 0.5).clamp(0.0, 1.0);
+  final angleCentrality = 1.0 - ((carrierY - 0.5).abs() * 2.0).clamp(0.0, 1.0);
+  double pressureScore = 0.0;
+  if (defAlive.isNotEmpty) {
+    int nearby = 0;
+    double avgDef = 0.0;
+    for (final dPlayer in defAlive) {
+      final dx = ((dPlayer.x ?? 0.5) - (carrier.x ?? 0.5));
+      final dy = ((dPlayer.y ?? 0.5) - (carrier.y ?? 0.5));
+      final distD = sqrt(dx*dx + dy*dy);
+      if (distD < EngineParams.graphXgFeatPressureRadius) {
+        nearby++;
+        avgDef += dPlayer.defense;
+      }
+    }
+    if (nearby > 0) avgDef /= nearby;
+    pressureScore = (nearby * EngineParams.graphXgFeatPressurePerDef * (1.0 + (avgDef/100.0)*0.15)).clamp(0.0, 1.0);
+  }
+  double assistAdj = 0.0;
+  if (passesSoFar > 0) {
+    if (usedLong > 0) {
+      assistAdj += EngineParams.graphXgFeatAssistLongPenalty;
+    } else if (passesSoFar == 1) {
+      assistAdj += EngineParams.graphXgFeatAssistShortBonus;
+    } else {
+      assistAdj += EngineParams.graphXgFeatAssistShortBonus * 0.5;
+    }
+  }
+  if (adaptiveBoost) assistAdj += EngineParams.graphXgFeatAssistDribbleBonus;
+  if (forcedFallback) assistAdj += EngineParams.graphXgFeatForcedShotPenalty;
+  double featXg = EngineParams.graphXgFeatBase;
+  featXg += EngineParams.graphXgFeatDistanceWeight * posFactor;
+  featXg += EngineParams.graphXgFeatAngleWeight * angleCentrality;
+  featXg *= (1.0 - EngineParams.graphXgFeatPressureWeight * pressureScore);
+  featXg += assistAdj;
+  featXg *= EngineParams.graphXgFeatScaling;
+  double legacyXg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor);
+  double xg = (EngineParams.graphXgFeatBlendLegacy * legacyXg + (1 - EngineParams.graphXgFeatBlendLegacy) * featXg)
+      .clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  if (forcedFallback) xg *= EngineParams.graphFallbackLongShotXgRel;
+  return ShotModelFeatResult(xg, legacyXg);
+}
 /// Standalone public helpers for graph engine probability computations.
 library;
 
@@ -38,6 +94,68 @@ double graphMultiDefInterceptProb(Player from, Player to, Iterable<Player> defen
 }
 
 class ShotModelResult { final double xg; final double pGoal; ShotModelResult(this.xg,this.pGoal); }
+
+/// MT5 multi-feature xG computation (public helper) blending legacy + feature model.
+ShotModelResult graphComputeShotModelMultiFeature({
+  required MatchEngine eng,
+  required Player carrier,
+  required PublicTeamRatings atk,
+  required PublicTeamRatings def,
+  required bool attackingTeamA,
+  bool forcedFallback = false,
+  int passesSoFar = 0,
+  bool dribbleAssist = false,
+  bool usedLong = false,
+  Iterable<Player>? defAlive,
+}) {
+  final rng = eng.rng; final goalX = attackingTeamA ? 1.0 : 0.0;
+  final dxGoal = (goalX - (carrier.x ?? 0.5)).abs().clamp(0.0, 1.0);
+  final baseQual = atk.attack / (atk.attack + def.defense + 1e-6);
+  final posFactor = (1.0 - dxGoal);
+  double legacyXg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor) + (rng.nextDouble() * EngineParams.graphXgRandomRange - EngineParams.graphXgRandomRange / 2);
+  legacyXg = legacyXg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  final carrierY = (carrier.y ?? 0.5).clamp(0.0, 1.0);
+  final angleCentrality = 1.0 - ((carrierY - 0.5).abs() * 2.0).clamp(0.0, 1.0);
+  double pressureScore = 0.0;
+  if (defAlive != null && defAlive.isNotEmpty) {
+    int nearby = 0; double weighted = 0.0;
+    for (final d in defAlive) {
+      if (d.sentOff || d.injured) continue;
+      final dx = ((d.x ?? 0.5) - (carrier.x ?? 0.5));
+      final dy = ((d.y ?? 0.5) - (carrier.y ?? 0.5));
+      final distD = sqrt(dx*dx + dy*dy);
+      if (distD < EngineParams.graphXgFeatPressureRadius) {
+        nearby++;
+        weighted += (d.defense / 100.0) * EngineParams.graphXgFeatPressureDefenseWeight;
+      }
+    }
+    if (nearby > 0) {
+      pressureScore = ((nearby * EngineParams.graphXgFeatPressurePerDef) * (1.0 + (weighted/nearby)*0.25)).clamp(0.0, 1.0);
+    }
+  }
+  double assistAdj = 0.0;
+  if (passesSoFar > 0) {
+    if (usedLong) assistAdj += EngineParams.graphXgFeatAssistLongPenalty;
+    else if (passesSoFar == 1) assistAdj += EngineParams.graphXgFeatAssistShortBonus;
+    else assistAdj += EngineParams.graphXgFeatAssistShortBonus * 0.5;
+  }
+  if (dribbleAssist) assistAdj += EngineParams.graphXgFeatAssistDribbleBonus;
+  if (forcedFallback) assistAdj += EngineParams.graphXgFeatForcedShotPenalty;
+  double featXg = EngineParams.graphXgFeatBase;
+  featXg += EngineParams.graphXgFeatDistanceWeight * posFactor;
+  featXg += EngineParams.graphXgFeatAngleWeight * angleCentrality;
+  featXg *= (1.0 - EngineParams.graphXgFeatPressureWeight * pressureScore);
+  featXg += assistAdj;
+  double xg = (EngineParams.graphXgFeatBlendLegacy * legacyXg + (1 - EngineParams.graphXgFeatBlendLegacy) * featXg)
+      .clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  if (forcedFallback) xg *= EngineParams.graphFallbackLongShotXgRel;
+  final gkSave = ((def.gk?.defense ?? 55) / 100.0);
+  double pGoal = (xg * (0.85 - EngineParams.graphGoalGkSaveFactor * gkSave * 1.10)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  if (carrier.hasAbility('FIN')) pGoal = (pGoal * (1.0 + EngineParams.graphAbilityFinPGoalRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  if (def.gk != null && def.gk!.hasAbility('CAT')) pGoal = (pGoal * (1.0 - EngineParams.graphAbilityCatSaveRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  if (carrier.role == Role.FWD_PC) pGoal = (pGoal * 1.03).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  return ShotModelResult(xg, pGoal);
+}
 
 /// Public ratings wrapper for testing / helpers without exposing private class.
 class PublicTeamRatings { final double attack; final double defense; final Player? gk; const PublicTeamRatings({required this.attack, required this.defense, this.gk}); }

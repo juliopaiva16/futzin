@@ -1,3 +1,25 @@
+import 'package:futzin/lib/domain/graph_public_helpers.dart';
+void main() {
+  test('MT5: pressure increases reduces featXg', () {
+    final carrier = Player(id: 'C', name: 'Carrier', pos: Position.FWD, attack: 80, defense: 40, stamina: 90, pace: 80, passing: 70, technique: 75, strength: 70, abilityCodes: []);
+    final def1 = Player(id: 'D1', name: 'Def1', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
+    final def2 = Player(id: 'D2', name: 'Def2', pos: Position.DEF, attack: 50, defense: 80, stamina: 80, pace: 70, passing: 60, technique: 65, strength: 75, abilityCodes: []);
+    def1.x = 0.52; def1.y = 0.5; // close
+    def2.x = 0.54; def2.y = 0.5; // close
+    carrier.x = 0.5; carrier.y = 0.5;
+    final baseQual = 0.7;
+    final posFactor = 0.9;
+    final passesSoFar = 2;
+    final usedLong = 0;
+    final adaptiveBoost = false;
+    final forcedFallback = false;
+    final noDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    final oneDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    final twoDef = graphComputeMultiFeatureXg(carrier: carrier, defAlive: [def1, def2], baseQual: baseQual, posFactor: posFactor, adaptiveBoost: adaptiveBoost, forcedFallback: forcedFallback, usedLong: usedLong, passesSoFar: passesSoFar);
+    expect(noDef.xg > oneDef.xg, true);
+    expect(oneDef.xg > twoDef.xg, true);
+  });
+}
 import 'package:flutter_test/flutter_test.dart';
 import 'package:futzin/domain/entities.dart';
 import 'package:futzin/domain/match_engine.dart';

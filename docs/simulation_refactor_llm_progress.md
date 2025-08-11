@@ -59,7 +59,7 @@ macro_topics:
   params: [graphInterceptBase,graphInterceptDefenseFactor,graphMultiInterceptMaxV2,graphAbilityVisInterceptRel,graphAbilityPasShortRel,graphInterceptTempoLowMitigation,graphInterceptWidthMitigation]
   implemented: [tempo_low_mitigation,width_high_mitigation,public_helper_test]
   - id: MT5_xg_model_multifeature
-    status: TODO
+  status: DOING
     features: [distance,angle,assist_type,pressure,body_part]
     outputs: [xg_raw,shot_quality_adjusted]
   - id: MT6_set_pieces_basic

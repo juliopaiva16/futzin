@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 class GraphActionLog {
+  final String? bodyPart; // MT5: header/foot/other (optional)
   final String matchId;
   final int minute;
   final int possessionId;
@@ -23,6 +24,7 @@ class GraphActionLog {
   final bool isGoal;
   final double? passDist;
   final double? pressureScore; // placeholder (future)
+  final String? bodyPart; // MT5+ placeholder: 'foot','head','other'
 
   GraphActionLog({
     required this.matchId,
@@ -43,6 +45,8 @@ class GraphActionLog {
     this.isGoal = false,
     this.passDist,
     this.pressureScore,
+  this.bodyPart,
+    this.bodyPart,
   });
 
   Map<String, dynamic> toJson() => {
@@ -63,7 +67,9 @@ class GraphActionLog {
         if (isShot) 'shot': 1,
         if (isGoal) 'goal': 1,
         if (passDist != null) 'dist': passDist,
-        if (pressureScore != null) 'prs': pressureScore,
+  if (pressureScore != null) 'prs': pressureScore,
+  if (bodyPart != null) 'bp': bodyPart,
+  if (bodyPart != null) 'bp': bodyPart,
       };
 }
 

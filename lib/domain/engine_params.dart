@@ -1,3 +1,4 @@
+  static const bool graphXgUseMultiFeature = true; // enable multi-feature xG model (MT5)
 /// Central engine parameters for the upcoming graph-based simulation.
 /// Phase 1: only constants; later phases will tune.
 class EngineParams {
@@ -183,6 +184,22 @@ class EngineParams {
   static const double graphPassMinSuccessTarget = 0.74; // lower bound guiding tuning decisions (informational)
   static const double graphPassMaxSuccessTarget = 0.83; // upper bound
   static const bool   graphLogPassOutcome = true; // append outcome tag (succ|int) in actionType for logs
+
+  // MT5: Multi-feature xG model (distance, angle, assist type, pressure, body part placeholder)
+  static const double graphXgFeatBase = 0.020; // base offset before features
+  static const double graphXgFeatDistanceWeight = 0.42; // weight for distance quality (prox to goal)
+  static const double graphXgFeatAngleWeight = 0.20; // weight for central angle (0..1)
+  static const double graphXgFeatPressureWeight = 0.18; // weight reducing quality with pressure (applied as (1 - w*pressureScore))
+  static const double graphXgFeatAssistShortBonus = 0.010; // additive if assisted by short pass
+  static const double graphXgFeatAssistLongPenalty = -0.008; // additive if assisted by long pass (often harder)
+  static const double graphXgFeatAssistDribbleBonus = 0.015; // additive if immediately after successful dribble
+  static const double graphXgFeatForcedShotPenalty = -0.012; // additive penalty for forced/stagnation fallback shots
+  static const double graphXgFeatPressureRadius = 0.14; // radius to count nearby defenders for pressure approximation
+  static const double graphXgFeatPressurePerDef = 0.28; // each defender within radius increases pressureScore by this (clamped 0..1)
+  static const double graphXgFeatScaling = 1.00; // overall scaling of composed raw result before existing clamps
+  static const double graphXgFeatBlendLegacy = 0.25; // blend portion of previous legacy xg formula (stability during transition)
+  static const bool   graphXgUseMultiFeature = true; // feature gate for MT5 model
+  static const double graphXgFeatPressureDefenseWeight = 0.60; // scaling applied to (defense/100) when weighting pressure impact
 
   // Phase 6 stamina model factors (minute-level decay components)
   static const double staminaTempoDecayFactor = 0.34; // scales tempo (0..1)
