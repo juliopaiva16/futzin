@@ -115,6 +115,10 @@ class Player {
   int passing; // distribution / vision
   int technique; // dribbling / control
   int strength; // physical / duels
+  // Phase MT2 (player generation enhancement)
+  int? heightCm; // optional height in centimeters
+  String? preferredFoot; // 'R','L','B' (both)
+  int? tier; // 1..4 (squad quality band)
   // Special abilities (codes) - up to 3 entries
   final List<String> abilityCodes;
   double currentStamina;
@@ -144,6 +148,9 @@ class Player {
     Role? role,
     this.x,
     this.y,
+  this.heightCm,
+  this.preferredFoot,
+  this.tier,
   })  : abilityCodes = List.unmodifiable((abilityCodes ?? []).take(3)),
         currentStamina = currentStamina ?? stamina.toDouble(),
         role = role ?? _defaultRoleFor(pos);
@@ -170,6 +177,9 @@ class Player {
     role: role,
     x: x,
     y: y,
+  heightCm: heightCm,
+  preferredFoot: preferredFoot,
+  tier: tier,
   );
 
   Map<String, dynamic> toJson() => {
@@ -187,6 +197,9 @@ class Player {
     'role': role.code,
     if (x != null) 'x': x,
     if (y != null) 'y': y,
+  if (heightCm != null) 'h': heightCm,
+  if (preferredFoot != null) 'foot': preferredFoot,
+  if (tier != null) 'tier': tier,
   };
 
   static Player fromJson(Map<String, dynamic> j) => Player(
@@ -204,6 +217,9 @@ class Player {
     role: roleFromCode(j['role'] as String?, Position.values[j['pos']]),
     x: (j['x'] as num?)?.toDouble(),
     y: (j['y'] as num?)?.toDouble(),
+  heightCm: (j['h'] ?? j['heightCm']) as int?,
+  preferredFoot: j['foot'] as String?,
+  tier: j['tier'] as int?,
   );
 }
 

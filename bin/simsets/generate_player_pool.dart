@@ -63,41 +63,10 @@ void main(List<String> args) async {
     final technique = roll(40, 95);
     final strength = roll(35, 95);
 
-    // Ability assignment probabilities (tweak later) - GK specific vs field
-    final abilities = <String>{};
-    double p() => r.nextDouble();
-    if (pos != Position.GK && p() < 0.07) abilities.add('VIS');
-    if (pos != Position.GK && p() < 0.07) abilities.add('PAS');
-    if (pos != Position.GK && p() < 0.07) abilities.add('DRB');
-    if (pos == Position.FWD && p() < 0.11) abilities.add('FIN');
-    if (pos == Position.DEF && p() < 0.11) abilities.add('WALL');
-    if (p() < 0.06) abilities.add('ENG');
-    if (p() < 0.05) abilities.add('CAP');
-    if (pos == Position.GK && p() < 0.30) abilities.add('CAT');
-    // Placeholders for future abilities (currently inactive in engine)
-    if (pos == Position.DEF && p() < 0.08) abilities.add('MRK');
-    if (pos == Position.FWD && p() < 0.07) abilities.add('HDR');
-    if (p() < 0.04) abilities.add('SPR');
-    if (p() < 0.03) abilities.add('CLT');
-
-    return Player(
-      id: 'PL$idx',
-      name: 'Player$idx',
-      pos: pos,
-      attack: attack,
-      defense: defense,
-      stamina: stamina,
-      pace: pace,
-      passing: passing,
-      technique: technique,
-      strength: strength,
-      abilityCodes: abilities.take(3).toList(),
-    );
-  }
-
-  final players = <Map<String,dynamic>>[];
-  for (int i = 0; i < count; i++) {
-    final pos = pattern[i];
+    // Height distribution (GK tallest, then DEF > MID > FWD). cm.
+    int baseH; switch (pos) {
+      case Position.GK: baseH = 188; break;
+    Player gen(int idx, Position pos) => generatePlayer(index: idx, pos: pos, rng: r).player;
     players.add(gen(i, pos).toJson());
   }
 

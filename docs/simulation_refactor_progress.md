@@ -159,6 +159,10 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-10 | 6 | Tuning5: reduce conversion (pGoal base 0.88, stronger GK), raise earlyShotProb 0.34, soften intercept base & multi-cap, moderate xG coeff | TUNE |
 | 2025-08-10 | 6 | Tuning6: shot volume push (earlyShotProb 0.40), conversion curb (pGoal base 0.85, GK factor↑), intercept base 0.064, multi-cap 0.28, ENG variable scaling expanded + rel 0.05 | TUNE |
 | 2025-08-10 | 5 | Scaffolding novas habilidades (MRK, AER, REF, COM, HDR, CLT, SPR) placeholders EngineParams + entities doc | DONE |
+| 2025-08-11 | 6 | Public fatigue helper + tests (FIN pGoal, multi-def intercept monotonic, VIS intercept reduction, ENG stamina) | DOING |
+| 2025-08-11 | 6 | Implementados: fallback forced shot, post-dribble shot chance, intercept/xG param adjustments (itens backlog 11-15 parciais) | TUNE |
+| 2025-08-11 | MT2 | Player generation: adicionados heightCm, preferredFoot, tier (parcial) | DOING |
+| 2025-08-11 | MT2 | PlayerFactory com atributos correlacionados + testes | DOING |
 | 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
 | 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 

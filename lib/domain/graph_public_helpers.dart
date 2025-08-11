@@ -56,3 +56,30 @@ ShotModelResult graphComputeShotModel({required MatchEngine eng, required Player
   if (carrier.role == Role.FWD_PC) pGoal = (pGoal * 1.03).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   return ShotModelResult(xg, pGoal);
 }
+
+/// Public helper (Phase 6) to compute per-minute fatigue cost for a player under given tactics.
+/// Mirrors private _computeMinuteFatigue used internally so tests can validate ENG effect.
+double graphComputeMinuteFatigue({required Player player, required Tactics tactics}) {
+  final tempo = tactics.tempo.clamp(0.0, 1.0);
+  final pressing = tactics.pressing.clamp(0.0, 1.0);
+  final riskProxy = (tactics.attackBias.abs() * 0.5 + tempo * 0.3 + pressing * 0.2).clamp(0.0, 1.0);
+  const baseCost = 0.08; // keep in sync with _computeMinuteFatigue
+  double variable = EngineParams.staminaTempoDecayFactor * tempo * 0.07
+      + EngineParams.staminaPressingDecayFactor * pressing * 0.06
+      + EngineParams.staminaRiskProxyFactor * riskProxy * 0.05;
+  if (player.hasAbility('ENG')) {
+    variable *= (1 - EngineParams.graphAbilityEngStaminaDecayRel);
+  }
+  double cost = (baseCost + variable).clamp(0.05, 0.22);
+  switch (player.role) {
+    case Role.MID_B2B:
+      cost *= 0.95; // -5%
+      break;
+    case Role.MID_WB:
+      cost *= 1.03; // +3%
+      break;
+    default:
+      break;
+  }
+  return cost;
+}

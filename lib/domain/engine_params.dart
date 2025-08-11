@@ -56,7 +56,8 @@ class EngineParams {
   static const int    graphPassMax = 5; // allow longer chains to raise shot volume
   // Interception probabilities still a bit high (pass success ~72% < target 75-88%).
   // Soften further to raise pass completion.
-  static const double graphInterceptBase = 0.064; // further softened (Tuning6)
+  // Backlog (item 14): interceptBase 0.064 -> 0.062 for slight pass success uplift
+  static const double graphInterceptBase = 0.062; // Tuning7 pre-pass-success window
   static const double graphInterceptDefenseFactor = 0.145; // softened
   static const double graphInterceptPressingFactor = 0.032; // softened
   static const double graphInterceptDistFactor = 0.10; // unchanged
@@ -66,8 +67,9 @@ class EngineParams {
   static const double graphFoulPressingFactor = 0.05;
   static const double graphRedBase = 0.03;
   static const double graphRedTempoFactor = 0.03;
-  static const double graphXgBase = 0.055; // slight rollback
-  static const double graphXgBlendAttack = 0.55; // weight for baseQual (rest for posFactor)
+  // Backlog (item 15): raise xG base & shift blend toward position
+  static const double graphXgBase = 0.065; // raised to lift reported xG
+  static const double graphXgBlendAttack = 0.48; // more weight to positional factor
   // Raise xG reporting (was undershooting vs actual goals) without inflating goals:
   static const double graphXgCoeff = 0.80; // moderate xG scale
   static const double graphXgRandomRange = 0.08; // +/- half
@@ -94,7 +96,8 @@ class EngineParams {
   static const double graphMultiInterceptDefenseScaleV2 = 0.40; // unchanged
   static const double graphMultiInterceptLaneTMinV2 = 0.10; // narrower window (was 0.08)
   static const double graphMultiInterceptLaneTMaxV2 = 0.90; // narrower window (was 0.92)
-  static const double graphMultiInterceptMaxV2 = 0.28; // lowered again for higher pass completion
+  // Backlog (item 14): multi-cap 0.28 -> 0.26 to push pass success upward
+  static const double graphMultiInterceptMaxV2 = 0.26;
 
   // Graph edge weighting (Phase 3: congestion-aware pass selection)
   static const double graphEdgeCongestionRadius = 0.12; // radius around mid pass point
@@ -134,8 +137,9 @@ class EngineParams {
   // Hold/back pass modest intercept risk reduction (removed duplicate older defs below)
 
   // Ability modifiers (Phase 5)
-  static const double graphAbilityVisInterceptRel = 0.10; // passer VIS reduces multi+single intercept chance rel
-  static const double graphAbilityPasShortRel = 0.05; // PAS reduces short/back intercept
+  // Backlog (item 14): VIS 0.10->0.12, PAS short 0.05->0.06
+  static const double graphAbilityVisInterceptRel = 0.12; // VIS stronger reduction
+  static const double graphAbilityPasShortRel = 0.06; // PAS stronger short/back reduction
   static const double graphAbilityPasLongSuccess = 0.03; // PAS increases long pass success abs before clamp
   static const double graphAbilityDrbSuccessAdd = 0.025; // slight further nerf to keep ability success <=60%
   static const double graphAbilityDrbExtraWeight = 0.15; // DRB extra dribble action weight multiplier
@@ -157,6 +161,10 @@ class EngineParams {
   static const double graphEarlyShotDist = 0.28; // unchanged
   static const double graphEarlyShotProb = 0.40; // modest raise while retaining early pGoal dampening (Tuning6)
   static const double graphAbilityCapTeamAdj = 0.03; // CAP small team attack/defense adj
+  // Post-dribble & fallback shot controls (Backlog items 11-13 partially)
+  static const double graphPostDribbleShotProb = 0.12; // chance of immediate shot after successful dribble
+  static const double graphPostDribbleShotMaxDist = 0.34; // allow if within this normalized dist to goal
+  static const double graphFallbackLongShotXgRel = 0.85; // damp xG for forced long shot after max passes
 
   // Phase 6 stamina model factors (minute-level decay components)
   static const double staminaTempoDecayFactor = 0.34; // scales tempo (0..1)

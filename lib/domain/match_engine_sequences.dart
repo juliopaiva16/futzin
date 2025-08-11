@@ -402,6 +402,13 @@ List<_SeqEvent> _buildGraphAttackSequence(
         final advance = (attackingTeamA ? 0.03 : -0.03);
         carrier.x = ((carrier.x ?? 0.5) + advance).clamp(0.0, 1.0);
         adaptiveBoost = true; // next decision favor safe consolidation
+        // Backlog item 12: small chance of immediate shot post-dribble even if early
+        final goalX = attackingTeamA ? 1.0 : 0.0;
+        final dxGoal = (goalX - (carrier.x ?? 0.5)).abs();
+        if (dxGoal < EngineParams.graphPostDribbleShotMaxDist && rng.nextDouble() < EngineParams.graphPostDribbleShotProb) {
+          passesSoFar = max(passesSoFar, 2); // ensure early-shot dampening uses >=2 passes scaling
+          break; // proceed to shot phase
+        }
       } else {
         seq.add(_SeqEvent.text(messages.dribbleFail(carrier.name)));
         final interceptor = nearestDef;
@@ -557,6 +564,8 @@ List<_SeqEvent> _buildGraphAttackSequence(
       return seq;
     }
   }
+  // Backlog item 11: if loop exhausted with no break (i.e., reached max passes), allow fallback forced shot
+  final forcedFallback = passesSoFar >= maxPasses;
   seq.add(_SeqEvent.text(messages.shoots(carrier.name)));
   final goalX = attackingTeamA ? 1.0 : 0.0;
   final dxGoal = (goalX - (carrier.x ?? 0.5)).abs().clamp(0.0, 1.0);
@@ -565,6 +574,10 @@ List<_SeqEvent> _buildGraphAttackSequence(
   double xg = EngineParams.graphXgBase + EngineParams.graphXgCoeff * (EngineParams.graphXgBlendAttack * baseQual + (1 - EngineParams.graphXgBlendAttack) * posFactor) +
       (rng.nextDouble() * EngineParams.graphXgRandomRange - EngineParams.graphXgRandomRange / 2);
   xg = xg.clamp(EngineParams.graphXgMin, EngineParams.graphXgMax);
+  if (forcedFallback) {
+    // Apply dampening for low-quality rushed shot
+    xg *= EngineParams.graphFallbackLongShotXgRel;
+  }
   final gkSave = ((defRat.gk?.defense ?? 55) / 100.0);
   // Adjusted base multiplier 0.95 -> 0.92 to reduce overall conversion. GK save factor unchanged here.
   double pGoal = (xg * (0.85 - EngineParams.graphGoalGkSaveFactor * gkSave * 1.10)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax); // stronger GK influence (Tuning6)

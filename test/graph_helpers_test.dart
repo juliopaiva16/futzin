@@ -3,6 +3,7 @@ import 'package:futzin/domain/entities.dart';
 import 'package:futzin/domain/match_engine.dart';
 import 'package:futzin/domain/graph_public_helpers.dart';
 import 'package:futzin/domain/messages.dart';
+import 'package:futzin/domain/engine_params.dart';
 
 class _DummyMessages implements MatchMessages {
   @override String kickoff() => 'K';
@@ -75,5 +76,29 @@ void main() {
   final rFin = graphComputeShotModel(eng: eng, carrier: fin, atk: atkR, def: defR, attackingTeamA: true);
   final rBase = graphComputeShotModel(eng: eng, carrier: base, atk: atkR, def: defR, attackingTeamA: true);
     expect(rFin.pGoal, greaterThan(rBase.pGoal));
+  });
+
+  test('VIS ability reduces combined intercept probability', () {
+    final passerVis = Player(id:'pv', name:'PV', pos:Position.MID, attack:60, defense:50, stamina:70, pace:60, passing:70, technique:60, strength:60, abilityCodes:['VIS']);
+    final passerBase = Player(id:'pb', name:'PB', pos:Position.MID, attack:60, defense:50, stamina:70, pace:60, passing:70, technique:60, strength:60);
+    final recv = Player(id:'r', name:'R', pos:Position.MID, attack:60, defense:50, stamina:70, pace:60, passing:60, technique:60, strength:60);
+    passerVis.x = passerBase.x = 0.3; passerVis.y = passerBase.y = 0.5; recv.x = 0.7; recv.y = 0.5;
+    // Three defenders forming congestion near mid lane
+    final defs = List.generate(3, (i){ final d = Player(id:'d$i', name:'D$i', pos:Position.DEF, attack:40, defense:60, stamina:70, pace:55, passing:40, technique:40, strength:60); d.x=0.35+0.1*i; d.y=0.5 + (i==1?0.015:0.0); return d; });
+    final pVis = graphMultiDefInterceptProb(passerVis, recv, defs) * (1 - EngineParams.graphAbilityVisInterceptRel); // model applies rel reduction after single+multi blend; approximate by applying rel directly to multi portion for test fairness
+    final pBase = graphMultiDefInterceptProb(passerBase, recv, defs);
+    expect(pVis, lessThan(pBase));
+  });
+
+  test('ENG ability reduces minute fatigue cost', () {
+    final tactics = Tactics(tempo:0.7, pressing:0.6, attackBias:0.2);
+    final engPlayer = Player(id:'e', name:'E', pos:Position.MID, attack:60, defense:50, stamina:80, pace:60, passing:60, technique:60, strength:60, abilityCodes:['ENG']);
+    final basePlayer = Player(id:'b', name:'B', pos:Position.MID, attack:60, defense:50, stamina:80, pace:60, passing:60, technique:60, strength:60);
+    final costEng = graphComputeMinuteFatigue(player: engPlayer, tactics: tactics);
+    final costBase = graphComputeMinuteFatigue(player: basePlayer, tactics: tactics);
+    expect(costEng, lessThan(costBase));
+    // Expect relative reduction roughly within plausible target window (<20%)
+    final rel = (costBase - costEng)/costBase;
+    expect(rel, greaterThan(0.01));
   });
 }

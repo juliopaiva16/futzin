@@ -45,8 +45,10 @@ macro_topics:
     implemented: [logger_file,engine_hooks,poss_counter,pressure_score_calc,distance_bins_metric_extractor,summary_batch_script]
     next: []
   - id: MT2_player_generation_enhancement
-    status: TODO
-    additions: [height_cm,preferred_foot,tier,correlated_attributes]
+  status: DOING
+  additions: [height_cm,preferred_foot,tier,correlated_attributes]
+  delivered: [height_cm,preferred_foot,tier,correlated_attributes]
+  pending: []
   - id: MT3_shot_volume_controls
     status: TODO
     levers: [fallback_shot,post_dribble_shot_chance]
