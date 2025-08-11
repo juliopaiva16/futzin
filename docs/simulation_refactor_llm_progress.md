@@ -38,10 +38,12 @@ root:
 
 macro_topics:
   - id: MT1_event_instrumentation
-    status: TODO
+    status: DOING
     goal: structured JSONL for every action/possession
     fields: [matchId,minute,possId,actionIndex,actionType,fromId,toId,fromX,fromY,toX,toY,preXg,xgDelta,isShot,isGoal,pressureScore,passDist]
     metrics_enabled: [seq_length,progressive_pass_rate,ppda,shot_distance_hist]
+    implemented: [logger_file,engine_hooks,poss_counter,pressure_score_calc,distance_bins_metric_extractor,summary_batch_script]
+    next: []
   - id: MT2_player_generation_enhancement
     status: TODO
     additions: [height_cm,preferred_foot,tier,correlated_attributes]

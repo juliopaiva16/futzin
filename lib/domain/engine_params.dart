@@ -162,4 +162,6 @@ class EngineParams {
   static const double staminaTempoDecayFactor = 0.34; // scales tempo (0..1)
   static const double staminaPressingDecayFactor = 0.28; // scales pressing (0..1)
   static const double staminaRiskProxyFactor = 0.12; // proxy for risky actions (long/dribble/launch) until micro-tracking
+  // Logging (MT1) 0=off 1=summary 2=detailed (future expansion)
+  static const int graphLoggingMode = 1;
 }

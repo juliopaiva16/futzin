@@ -5,6 +5,7 @@ import 'entities.dart';
 import 'messages.dart';
 import 'graph_engine.dart';
 import 'engine_params.dart';
+import 'graph_logging.dart';
 
 part 'match_engine_types.dart';
 part 'match_engine_sequences.dart';
@@ -28,8 +29,12 @@ class MatchEngine {
   static const int _baseTickMs = 450;
   double speedMultiplier = 1.0;
   final bool useGraph; // experimental graph micro-engine (fase 2)
-  MatchEngine(this.teamA, this.teamB, {required this.messages, int? seed, this.useGraph = false})
-      : rng = Random(seed ?? DateTime.now().millisecondsSinceEpoch);
+  final GraphEventLogger? graphLogger; // MT1 logger (nullable)
+  final String matchId; // unique ID for instrumentation
+  int _possessionCounter = 0;
+  MatchEngine(this.teamA, this.teamB, {required this.messages, int? seed, this.useGraph = false, this.graphLogger, String? matchId})
+      : matchId = matchId ?? 'M${DateTime.now().millisecondsSinceEpoch % 1000000}',
+        rng = Random(seed ?? DateTime.now().millisecondsSinceEpoch);
 
   Stream<MatchEvent> get stream => _controller.stream;
 
@@ -62,6 +67,46 @@ class MatchEngine {
     teamA.resetRuntime();
     teamB.resetRuntime();
     _controller.add(MatchEvent(0, messages.kickoff(), scoreA, scoreB, xgA, xgB));
+  }
+
+  // ========== Graph Instrumentation Helpers (MT1) ==========
+  int _startPossession() => ++_possessionCounter;
+  void _logGraphAction({
+    required int minute,
+    required int possessionId,
+    required int actionIndex,
+    required String actionType,
+    required bool teamAAction,
+    required Player from,
+    Player? to,
+    double? preXg,
+    double? xgDelta,
+    bool isShot = false,
+    bool isGoal = false,
+    double? passDist,
+    double? pressureScore,
+  }) {
+    if (graphLogger == null || EngineParams.graphLoggingMode == 0) return;
+    graphLogger!.log(GraphActionLog(
+      matchId: matchId,
+      minute: minute,
+      possessionId: possessionId,
+      actionIndex: actionIndex,
+      actionType: actionType,
+      side: teamAAction ? 'A' : 'B',
+      fromPlayerId: from.id,
+      toPlayerId: to?.id,
+      fromX: from.x,
+      fromY: from.y,
+      toX: to?.x,
+      toY: to?.y,
+      preXg: preXg,
+      xgDelta: xgDelta,
+      isShot: isShot,
+      isGoal: isGoal,
+      passDist: passDist,
+      pressureScore: pressureScore,
+    ));
   }
 
   // Public start variants

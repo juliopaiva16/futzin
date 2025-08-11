@@ -254,6 +254,21 @@ List<_SeqEvent> _buildGraphAttackSequence(
   }
 
   var carrier = pickStarter();
+  final possessionId = eng._startPossession();
+  int actionIndex = 0;
+  double pressureFor(Player p) {
+    double sum = 0; int n = 0;
+    for (final d in defAlive) {
+      final dx = (p.x ?? 0.5) - (d.x ?? 0.5);
+      final dy = (p.y ?? 0.5) - (d.y ?? 0.5);
+      final dist = sqrt(dx*dx + dy*dy);
+      if (dist < 0.001) continue;
+      sum += 1.0 / dist; n++;
+    }
+    if (n == 0) return 0.0;
+    final avg = sum / n;
+    return avg.clamp(0.0, 25.0);
+  }
   seq.add(_SeqEvent.text(messages.findsSpace(carrier.name)));
   final closeChance = EngineParams.graphCloseBase + EngineParams.graphCloseDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
   if (rng.nextDouble() < closeChance) {
@@ -315,6 +330,15 @@ List<_SeqEvent> _buildGraphAttackSequence(
 
     if (chosen == _GraphAction.hold) {
       seq.add(_SeqEvent.text(messages.holdUp(carrier.name)));
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'hold',
+        teamAAction: attackingTeamA,
+        from: carrier,
+  pressureScore: pressureFor(carrier),
+      );
       holdBuff = true;
       continue; // consume one iteration without moving the ball (time abstracted)
     }
@@ -323,11 +347,32 @@ List<_SeqEvent> _buildGraphAttackSequence(
       if (rng.nextDouble() < EngineParams.graphLaunchWinProb) {
         // pick a random forward-ish teammate
         final forward = recsAll.isNotEmpty ? recsAll[rng.nextInt(recsAll.length)] : carrier;
+        eng._logGraphAction(
+          minute: eng.minute,
+          possessionId: possessionId,
+          actionIndex: actionIndex++,
+          actionType: 'launch_win',
+          teamAAction: attackingTeamA,
+          from: carrier,
+          to: forward,
+          passDist: dist(carrier, forward),
+          pressureScore: pressureFor(carrier),
+        );
         carrier = forward;
         adaptiveBoost = true; // reward retaining after risky launch
       } else {
         final interceptor = pickDefender();
         seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+        eng._logGraphAction(
+          minute: eng.minute,
+          possessionId: possessionId,
+          actionIndex: actionIndex++,
+          actionType: 'launch_intercept',
+          teamAAction: attackingTeamA,
+          from: carrier,
+          to: interceptor,
+          pressureScore: pressureFor(carrier),
+        );
         return seq;
       }
       continue;
@@ -343,6 +388,16 @@ List<_SeqEvent> _buildGraphAttackSequence(
       seq.add(_SeqEvent.text(messages.dribble(carrier.name, nearestDef.name)));
       if (rng.nextDouble() < pSuccess) {
         seq.add(_SeqEvent.text(messages.dribbleSuccess(carrier.name)));
+        eng._logGraphAction(
+          minute: eng.minute,
+          possessionId: possessionId,
+          actionIndex: actionIndex++,
+          actionType: 'dribble_success',
+          teamAAction: attackingTeamA,
+          from: carrier,
+          to: nearestDef,
+          pressureScore: pressureFor(carrier),
+        );
         // small x advancement if possible
         final advance = (attackingTeamA ? 0.03 : -0.03);
         carrier.x = ((carrier.x ?? 0.5) + advance).clamp(0.0, 1.0);
@@ -351,6 +406,16 @@ List<_SeqEvent> _buildGraphAttackSequence(
         seq.add(_SeqEvent.text(messages.dribbleFail(carrier.name)));
         final interceptor = nearestDef;
         seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+        eng._logGraphAction(
+          minute: eng.minute,
+          possessionId: possessionId,
+          actionIndex: actionIndex++,
+          actionType: 'dribble_fail_intercept',
+          teamAAction: attackingTeamA,
+          from: carrier,
+          to: interceptor,
+          pressureScore: pressureFor(carrier),
+        );
         return seq;
       }
       continue;
@@ -402,16 +467,60 @@ List<_SeqEvent> _buildGraphAttackSequence(
     if (rng.nextDouble() < interceptChance) {
       final interceptor = pickDefender();
       seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'intercept',
+        teamAAction: attackingTeamA,
+        from: carrier,
+        to: interceptor,
+        passDist: d,
+  pressureScore: pressureFor(carrier),
+      );
       return seq;
     }
 
     // Emit event text depending on action
     if (longAttempt) {
       seq.add(_SeqEvent.text(messages.longPass(carrier.name, rec.name))); // contains 'pass'
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'longPass',
+        teamAAction: attackingTeamA,
+        from: carrier,
+        to: rec,
+        passDist: d,
+  pressureScore: pressureFor(carrier),
+      );
     } else if (chosen == _GraphAction.backPass) {
       seq.add(_SeqEvent.text(messages.backPass(carrier.name, rec.name))); // contains 'pass'
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'backPass',
+        teamAAction: attackingTeamA,
+        from: carrier,
+        to: rec,
+        passDist: d,
+  pressureScore: pressureFor(carrier),
+      );
     } else {
       seq.add(_SeqEvent.text(messages.pass(carrier.name, rec.name)));
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'shortPass',
+        teamAAction: attackingTeamA,
+        from: carrier,
+        to: rec,
+        passDist: d,
+  pressureScore: pressureFor(carrier),
+      );
     }
 
   carrier = rec;
@@ -435,6 +544,16 @@ List<_SeqEvent> _buildGraphAttackSequence(
       } else {
         seq.add(_SeqEvent.card(messages.foulYellow(offender.name, def.name), offender, _CardType.yellow));
       }
+      eng._logGraphAction(
+        minute: eng.minute,
+        possessionId: possessionId,
+        actionIndex: actionIndex++,
+        actionType: 'foul',
+        teamAAction: attackingTeamA,
+        from: offender,
+        to: carrier,
+  pressureScore: pressureFor(carrier),
+      );
       return seq;
     }
   }
@@ -458,11 +577,37 @@ List<_SeqEvent> _buildGraphAttackSequence(
   if (carrier.hasAbility('FIN')) pGoal = (pGoal * (1.0 + EngineParams.graphAbilityFinPGoalRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   if (defRat.gk != null && defRat.gk!.hasAbility('CAT')) pGoal = (pGoal * (1.0 - EngineParams.graphAbilityCatSaveRel)).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
   if (carrier.role == Role.FWD_PC) pGoal = (pGoal * 1.03).clamp(EngineParams.graphPGoalMin, EngineParams.graphPGoalMax);
+  final preXg = attackingTeamA ? eng.xgA : eng.xgB;
   if (rng.nextDouble() < pGoal) {
     seq.add(_SeqEvent.goal(messages.goal(atk.name, carrier.name), xg));
+    eng._logGraphAction(
+      minute: eng.minute,
+      possessionId: possessionId,
+      actionIndex: actionIndex++,
+      actionType: 'goal',
+      teamAAction: attackingTeamA,
+      from: carrier,
+      isShot: true,
+      isGoal: true,
+      preXg: preXg,
+      xgDelta: xg,
+  pressureScore: pressureFor(carrier),
+    );
     return seq;
   }
   seq.add(_SeqEvent.shot(xg, 'Shot'));
+  eng._logGraphAction(
+    minute: eng.minute,
+    possessionId: possessionId,
+    actionIndex: actionIndex++,
+    actionType: 'shot',
+    teamAAction: attackingTeamA,
+    from: carrier,
+    isShot: true,
+    preXg: preXg,
+    xgDelta: xg,
+  pressureScore: pressureFor(carrier),
+  );
   final pSave = EngineParams.graphShotSaveBase - EngineParams.graphShotSaveQualityFactor * baseQual + EngineParams.graphShotSaveGkFactor * gkSave;
   if (rng.nextDouble() < pSave) {
     seq.add(_SeqEvent.text(messages.savedByKeeper()));
