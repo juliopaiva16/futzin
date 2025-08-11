@@ -83,3 +83,12 @@ double graphComputeMinuteFatigue({required Player player, required Tactics tacti
   }
   return cost;
 }
+
+/// MT4: approximate single-pass intercept chance (excluding multi-def lane component) to test mitigation effects.
+double graphApproxInterceptChance({required double baseAttackAdj, required double baseDefenseAdj, required double defPressing, required double atkTempo, required double atkWidth}) {
+  double interceptBase = EngineParams.graphInterceptBase + EngineParams.graphInterceptDefenseFactor * (baseDefenseAdj / (baseAttackAdj + baseDefenseAdj)) + EngineParams.graphInterceptPressingFactor * defPressing;
+  final lowTempoMit = (1.0 - EngineParams.graphInterceptTempoLowMitigation * (1.0 - atkTempo));
+  final highWidthMit = (1.0 - EngineParams.graphInterceptWidthMitigation * atkWidth);
+  interceptBase *= lowTempoMit * highWidthMit;
+  return interceptBase.clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+}

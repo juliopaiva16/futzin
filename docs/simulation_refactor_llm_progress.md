@@ -54,9 +54,10 @@ macro_topics:
   levers: [fallback_shot,post_dribble_shot_chance,forced_shot_stagnation]
   implemented: [post_dribble_dynamic_prob,fallback_forced_shot,stagnation_trigger]
   - id: MT4_pass_success_tuning
-    status: TODO
-    target_range: [0.75,0.82]
-    params: [graphInterceptBase,graphInterceptDefenseFactor,graphMultiInterceptMaxV2,graphAbilityVisInterceptRel,graphAbilityPasShortRel]
+  status: DOING
+  target_range: [0.75,0.82]
+  params: [graphInterceptBase,graphInterceptDefenseFactor,graphMultiInterceptMaxV2,graphAbilityVisInterceptRel,graphAbilityPasShortRel,graphInterceptTempoLowMitigation,graphInterceptWidthMitigation]
+  implemented: [tempo_low_mitigation,width_high_mitigation,public_helper_test]
   - id: MT5_xg_model_multifeature
     status: TODO
     features: [distance,angle,assist_type,pressure,body_part]

@@ -164,6 +164,8 @@ Atualize em cada commit relacionado. Mantenha histórico sucinto e datado (UTC).
 | 2025-08-11 | MT2 | Player generation: adicionados heightCm, preferredFoot, tier (parcial) | DOING |
 | 2025-08-11 | MT2 | PlayerFactory com atributos correlacionados + testes | DOING |
 | 2025-08-11 | MT3 | Dynamic shot volume controls (post-dribble prob + forced shot logic) | DOING |
+| 2025-08-11 | MT4 | Pass success tuning: tempo & width intercept mitigations + helper/test | DOING |
+| 2025-08-11 | MT4 | Alternate intercept blend model + pass outcome logging | DOING |
 | 2025-08-09 | Batch | Script batch expandido (tipos passe, drible, launch) | DONE |
 | 2025-08-09 | Batch | Script batch ampliado p/ métricas de habilidades | DONE |
 

@@ -101,4 +101,11 @@ void main() {
     final rel = (costBase - costEng)/costBase;
     expect(rel, greaterThan(0.01));
   });
+
+  test('MT4 intercept mitigation lowers chance for low tempo / high width', () {
+    // Baseline midfield duel context approximated by attackAdj=80, defenseAdj=75
+    final highRisk = graphApproxInterceptChance(baseAttackAdj:80, baseDefenseAdj:75, defPressing:0.8, atkTempo:0.9, atkWidth:0.2);
+    final lowRisk = graphApproxInterceptChance(baseAttackAdj:80, baseDefenseAdj:75, defPressing:0.8, atkTempo:0.3, atkWidth:0.9);
+    expect(lowRisk, lessThan(highRisk));
+  });
 }

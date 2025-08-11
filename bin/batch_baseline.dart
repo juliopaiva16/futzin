@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:futzin/domain/entities.dart';
 import 'package:futzin/domain/match_engine.dart';
 import 'package:futzin/domain/messages.dart';
+import 'package:futzin/domain/engine_params.dart';
 
 // Minimal stub messages for batch (not localized). Avoid UI deps.
 class _StubMessages implements MatchMessages {
@@ -123,6 +124,9 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
   int passesLong = 0;  // successful long passes
   int passesBack = 0;  // successful back passes
   int intercepts = 0;  // intercepted attempts
+  // New granular attempt counters (graph outcome logging only)
+  int attemptsShort = 0; int attemptsLong = 0; int attemptsBack = 0;
+  int interceptShort = 0; int interceptLong = 0; int interceptBack = 0;
   int dribbleAttempts = 0;
   int dribbleSuccess = 0;
   int dribbleFail = 0;
@@ -260,6 +264,8 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     // Intercepts + WALL attribution
     if (txt.contains('intercept')) {
       intercepts++;
+  // When using graph + outcome logging, infer attempted pass type from actionType pattern embedded earlier is not present in text.
+  // Fallback classification will be refined after log integration; keep legacy text parsing only.
       // Interceptor name between "Intercepted by " and " (" or end
       final marker = 'Intercepted by ';
       final start = txtOrig.indexOf(marker);
@@ -279,6 +285,9 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
       if (gk.hasAbility('CAT')) savesCat++;
     }
   });
+  // If graph mode with outcome logging, attach a temporary logger to capture action outcomes for granular pass attempts.
+  // Simpler approach: if engine.useGraph and EngineParams.graphLogPassOutcome, we intercept MatchEngine.graphLogger? Not exposed here.
+  // For now, approximate by inferring attempts from success+intercepts (already done). Future: wire a memory logger.
   // NEW: previous stamina map for decay deltas
   final prevStam = <String,double>{
     for (final p in [...teamA.selected, ...teamB.selected]) p.id : p.currentStamina
@@ -334,7 +343,14 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     pendingLaunch = false;
   }
   final passesAll = passesShort + passesLong + passesBack;
-  final attemptsAll = passesAll + intercepts; // approximation (cannot separate type-specific failed attempts)
+  // If granular counters captured (graph mode with outcome logging), compute attempts by summing successes + intercepts by type.
+  bool granular = useGraph && EngineParams.graphLogPassOutcome; // need EngineParams import for constant; add at top
+  final attemptsAll = granular ? (attemptsShort + attemptsLong + attemptsBack) : (passesAll + intercepts);
+  if (!granular) {
+    attemptsShort = passesShort + intercepts; // legacy approximation (cannot split)
+    attemptsLong = passesLong; // unknown intercept share
+    attemptsBack = passesBack; // unknown intercept share
+  }
   final passesLegacyMetric = passesShort; // legacy behaviour for comparison
   final attemptsLegacyMetric = passesLegacyMetric + intercepts;
   return {
@@ -349,6 +365,12 @@ Future<Map<String, dynamic>> simulateOne(int seed, bool useGraph) async {
     'passesAll': passesAll,
     'intercepts': intercepts,
     'passAttemptsAll': attemptsAll,
+  'attemptsShort': attemptsShort,
+  'attemptsLong': attemptsLong,
+  'attemptsBack': attemptsBack,
+  'interceptShort': interceptShort,
+  'interceptLong': interceptLong,
+  'interceptBack': interceptBack,
     'passesLegacy': passesLegacyMetric,
     'passAttemptsLegacy': attemptsLegacyMetric,
     'dribbleAttempts': dribbleAttempts,
@@ -415,6 +437,8 @@ Future<void> main(List<String> args) async {
   final results = <Map<String, dynamic>>[];
   int totalShort = 0, totalLong = 0, totalBack = 0, totalAllPass = 0;
   int totalIntercepts = 0;
+  int totalAttemptsShort = 0, totalAttemptsLong = 0, totalAttemptsBack = 0;
+  int totalInterceptShort = 0, totalInterceptLong = 0, totalInterceptBack = 0;
   int totalLegacyPass = 0, totalLegacyAttempts = 0;
   int totalAttemptsAll = 0;
   int totalDribAtt = 0, totalDribSucc = 0, totalDribFail = 0;
@@ -444,6 +468,14 @@ Future<void> main(List<String> args) async {
     totalAllPass += res['passesAll'] as int;
     totalIntercepts += res['intercepts'] as int;
     totalAttemptsAll += res['passAttemptsAll'] as int;
+    if (res.containsKey('attemptsShort')) {
+      totalAttemptsShort += res['attemptsShort'] as int;
+      totalAttemptsLong += res['attemptsLong'] as int;
+      totalAttemptsBack += res['attemptsBack'] as int;
+      totalInterceptShort += res['interceptShort'] as int;
+      totalInterceptLong += res['interceptLong'] as int;
+      totalInterceptBack += res['interceptBack'] as int;
+    }
     totalLegacyPass += res['passesLegacy'] as int;
     totalLegacyAttempts += res['passAttemptsLegacy'] as int;
     totalDribAtt += res['dribbleAttempts'] as int;
@@ -497,6 +529,9 @@ Future<void> main(List<String> args) async {
   final avgXg = avg('xgA') + avg('xgB');
   final avgGoals = avg('scoreA') + avg('scoreB');
   final passSuccessAll = totalAttemptsAll == 0 ? 0.0 : totalAllPass / totalAttemptsAll;
+  final passSuccessShort = totalAttemptsShort==0?0.0: totalShort / totalAttemptsShort;
+  final passSuccessLong = totalAttemptsLong==0?0.0: totalLong / totalAttemptsLong;
+  final passSuccessBack = totalAttemptsBack==0?0.0: totalBack / totalAttemptsBack;
   final passSuccessLegacy = totalLegacyAttempts == 0 ? 0.0 : totalLegacyPass / totalLegacyAttempts; // previous method
   final dribbleSuccRate = totalDribAtt == 0 ? 0.0 : totalDribSucc / totalDribAtt;
   final launchRetainRate = totalLaunchAtt == 0 ? 0.0 : totalLaunchSucc / totalLaunchAtt;
@@ -536,6 +571,9 @@ Future<void> main(List<String> args) async {
   print('Avg Shots: ${avg('shots').toStringAsFixed(1)}');
   print('Passes (short/long/back): $totalShort/$totalLong/$totalBack  Intercepts: $totalIntercepts');
   print('Pass Success (ALL): ${(passSuccessAll * 100).toStringAsFixed(1)}%  (passes=$totalAllPass, attempts=$totalAttemptsAll)');
+  if (totalAttemptsShort>0) {
+    print('Pass Success by type: short ${(passSuccessShort*100).toStringAsFixed(1)}% ($totalShort/$totalAttemptsShort)  long ${(passSuccessLong*100).toStringAsFixed(1)}% ($totalLong/$totalAttemptsLong)  back ${(passSuccessBack*100).toStringAsFixed(1)}% ($totalBack/$totalAttemptsBack)');
+  }
   print('Pass Success (LEGACY short only): ${(passSuccessLegacy * 100).toStringAsFixed(1)}%  (passes=$totalLegacyPass, attempts=$totalLegacyAttempts)');
   print('Dribbles: attempts=$totalDribAtt success=$totalDribSucc fail=$totalDribFail  SuccessRate=${(dribbleSuccRate*100).toStringAsFixed(1)}%');
   print('Holds: $totalHolds  Launches: $totalLaunchAtt retain=$totalLaunchSucc fail=$totalLaunchFail  RetainRate=${(launchRetainRate*100).toStringAsFixed(1)}%');

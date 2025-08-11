@@ -450,15 +450,37 @@ List<_SeqEvent> _buildGraphAttackSequence(
 
     final d = dist(carrier, rec).clamp(0.05, 1.0);
     bool longAttempt = chosen == _GraphAction.longPass;
-    double interceptBase = EngineParams.graphInterceptBase + EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj)) + EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
+    double interceptBase = EngineParams.graphInterceptBase + EngineParams.graphInterceptDefenseFactor * (defRat.defenseAdj / (atkRat.attackAdj + defRat.defenseAdj));
+    // Alternate pressing application (MT4): scale pressing part separately if enabled
+    if (EngineParams.graphPassTuningAltModel) {
+      interceptBase += EngineParams.graphInterceptPressingFactor * def.tactics.pressing * EngineParams.graphInterceptPressingAltScale;
+    } else {
+      interceptBase += EngineParams.graphInterceptPressingFactor * def.tactics.pressing;
+    }
+  // MT4 mitigations: safer environment lowers intercept probability modestly
+  final tempo = atk.tactics.tempo; // 0..1
+  final width = atk.tactics.width; // 0..1
+  final lowTempoMit = (1.0 - EngineParams.graphInterceptTempoLowMitigation * (1.0 - tempo));
+  final highWidthMit = (1.0 - EngineParams.graphInterceptWidthMitigation * width);
+  interceptBase *= lowTempoMit * highWidthMit;
     if (chosen == _GraphAction.backPass) interceptBase *= EngineParams.graphBackPassInterceptFactor; // safer
     if (carrier.hasAbility('PAS') && chosen != _GraphAction.longPass) {
       interceptBase *= (1.0 - EngineParams.graphAbilityPasShortRel);
     }
     // Compute single-lane component
-    final interceptChanceSingle = (interceptBase + EngineParams.graphInterceptDistFactor * (d - 0.15));
+    double interceptChanceSingle = (interceptBase + EngineParams.graphInterceptDistFactor * (d - 0.15));
+    if (EngineParams.graphPassTuningAltModel) {
+      interceptChanceSingle = interceptChanceSingle.clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptSingleCap);
+    }
     final multiProb = multiDefInterceptProb(carrier, rec);
-    double interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    double interceptChance;
+    if (EngineParams.graphPassTuningAltModel) {
+      // Weighted blend rather than direct sum
+      interceptChance = (EngineParams.graphInterceptLaneBlend * multiProb + (1 - EngineParams.graphInterceptLaneBlend) * interceptChanceSingle)
+          .clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    } else {
+      interceptChance = (interceptChanceSingle + multiProb).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
+    }
     if (carrier.hasAbility('VIS')) {
       interceptChance *= (1.0 - EngineParams.graphAbilityVisInterceptRel);
     }
@@ -478,19 +500,33 @@ List<_SeqEvent> _buildGraphAttackSequence(
       interceptChance = (0.30 * interceptChance + 0.70 * longIntercept).clamp(EngineParams.graphInterceptMin, EngineParams.graphInterceptMax);
     }
 
-    if (rng.nextDouble() < interceptChance) {
+  final passIntercepted = rng.nextDouble() < interceptChance;
+  if (passIntercepted) {
       final interceptor = pickDefender();
       seq.add(_SeqEvent.text(messages.intercepted(interceptor.name, def.name)));
+      // More granular intercept tagging (MT4 batch instrumentation): encode attempted pass type when logging.
+      String actionTypeStr;
+      if (EngineParams.graphLogPassOutcome) {
+        if (longAttempt) {
+          actionTypeStr = 'longPass_int';
+        } else if (chosen == _GraphAction.backPass) {
+          actionTypeStr = 'backPass_int';
+        } else {
+          actionTypeStr = 'shortPass_int';
+        }
+      } else {
+        actionTypeStr = 'intercept';
+      }
       eng._logGraphAction(
         minute: eng.minute,
         possessionId: possessionId,
         actionIndex: actionIndex++,
-        actionType: 'intercept',
+        actionType: actionTypeStr,
         teamAAction: attackingTeamA,
         from: carrier,
         to: interceptor,
         passDist: d,
-  pressureScore: pressureFor(carrier),
+        pressureScore: pressureFor(carrier),
       );
       return seq;
     }
@@ -502,7 +538,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
         minute: eng.minute,
         possessionId: possessionId,
         actionIndex: actionIndex++,
-        actionType: 'longPass',
+        actionType: EngineParams.graphLogPassOutcome ? 'longPass_succ' : 'longPass',
         teamAAction: attackingTeamA,
         from: carrier,
         to: rec,
@@ -515,7 +551,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
         minute: eng.minute,
         possessionId: possessionId,
         actionIndex: actionIndex++,
-        actionType: 'backPass',
+        actionType: EngineParams.graphLogPassOutcome ? 'backPass_succ' : 'backPass',
         teamAAction: attackingTeamA,
         from: carrier,
         to: rec,
@@ -528,7 +564,7 @@ List<_SeqEvent> _buildGraphAttackSequence(
         minute: eng.minute,
         possessionId: possessionId,
         actionIndex: actionIndex++,
-        actionType: 'shortPass',
+        actionType: EngineParams.graphLogPassOutcome ? 'shortPass_succ' : 'shortPass',
         teamAAction: attackingTeamA,
         from: carrier,
         to: rec,

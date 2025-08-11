@@ -63,6 +63,9 @@ class EngineParams {
   static const double graphInterceptDistFactor = 0.10; // unchanged
   static const double graphInterceptMin = 0.02;
   static const double graphInterceptMax = 0.65;
+  // MT4: mitigation factors to raise pass success into target band (applied multiplicatively)
+  static const double graphInterceptTempoLowMitigation = 0.10; // reduces intercept when tempo is low (safer buildup)
+  static const double graphInterceptWidthMitigation = 0.08; // reduces intercept when width high (more spacing)
   static const double graphFoulBase = 0.05;
   static const double graphFoulPressingFactor = 0.05;
   static const double graphRedBase = 0.03;
@@ -171,6 +174,15 @@ class EngineParams {
   static const bool   graphForcedShotEnabled = true; // allow early forced shot if sequence stalls
   static const int    graphForcedShotMinPasses = 4; // after this many passes without progress, force shot
   static const double graphForcedShotProgressThreshold = 0.015; // min x progress to count as advancement
+
+  // MT4 Pass Success Tuning Parameters
+  static const bool   graphPassTuningAltModel = true; // enable alternate intercept adjustment pipeline
+  static const double graphInterceptPressingAltScale = 0.60; // portion of pressing applied vs old direct factor
+  static const double graphInterceptLaneBlend = 0.55; // weight of lane multi-def component in combined intercept
+  static const double graphInterceptSingleCap = 0.50; // cap for single + distance portion before lane add
+  static const double graphPassMinSuccessTarget = 0.74; // lower bound guiding tuning decisions (informational)
+  static const double graphPassMaxSuccessTarget = 0.83; // upper bound
+  static const bool   graphLogPassOutcome = true; // append outcome tag (succ|int) in actionType for logs
 
   // Phase 6 stamina model factors (minute-level decay components)
   static const double staminaTempoDecayFactor = 0.34; // scales tempo (0..1)
