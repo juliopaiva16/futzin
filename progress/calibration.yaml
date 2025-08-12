@@ -1,10 +1,26 @@
-id: calibration-pipeline
-title: Metrics batch & divergence
-status: TODO
-updated: 2025-08-11
-owner: core
-deps: [engine-core]
-metrics: { batch_runs: 0 }
-notes: |
-  Need automated batch script wiring & divergence scoring
-next: [define-divergence-fn, add-test-harness, baseline-export]
+root:
+  id: calibration-pipeline
+  title: Calibration & metrics automation
+  status: TODO
+  updated: 2025-08-11
+  owner: core
+  notes: |
+    Need automated batch script wiring & divergence scoring
+  phases:
+    - id: batch-runner
+      status: TODO
+      delivered: []
+      pending: [runner-script, seed-control]
+    - id: metrics-export
+      status: TODO
+      delivered: []
+      pending: [jsonl-writer, compress-option]
+    - id: divergence-scoring
+      status: TODO
+      delivered: []
+      pending: [formula-pass, formula-xg, aggregate-weighting]
+  metrics_current: { batch_runs: 0 }
+  metrics_targets: { batch_runs: 10 }
+  open_questions: [weighting-of-outliers, acceptable-drift-window]
+  next_batch_priority_order: [define-divergence-fn, add-test-harness, baseline-export]
+  risks: [tuning-complexity-spike]

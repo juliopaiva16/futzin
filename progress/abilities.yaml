@@ -1,10 +1,20 @@
-id: abilities-system
-title: Abilities effects rollout
-status: TUNE
-updated: 2025-08-11
-owner: core
-deps: [engine-core]
-metrics: { implemented: 8, pending: 7 }
-notes: |
-  Core set active (VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG); placeholders for MRK,AER,REF,COM,HDR,CLT,SPR
-next: [implement-mrk-hdr-ref, clamp-stack-validation]
+root:
+  id: abilities-system
+  title: Abilities effects rollout
+  status: TUNE
+  updated: 2025-08-11
+  owner: core
+  notes: |
+    Core set active (VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG); placeholders staged
+  components:
+    - id: core_set
+      implemented: [VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG]
+      pending: []
+    - id: advanced_set
+      implemented: []
+      pending: [MRK,AER,REF,COM,HDR,CLT,SPR]
+  metrics_current: { implemented: 8, pending: 7 }
+  metrics_targets: { implemented: 15 }
+  open_questions: [stacking_order_safety, late_game_clt_cap]
+  next_batch_priority_order: [implement-mrk-hdr-ref, clamp-stack-validation]
+  risks: [ability-power-creep, tuning-complexity-spike]

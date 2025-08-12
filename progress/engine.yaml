@@ -1,10 +1,43 @@
-id: engine-core
-title: Engine graph + legacy convergence
-status: DOING
-updated: 2025-08-11
-owner: core
-deps: []
-metrics: { pass_pct: 71.9, xg_avg: 2.40, goals_avg: 2.38, dribble_att: 3.8, dribble_succ_pct: 50.5 }
-notes: |
-  Phases 1-3 DONE; phase4-6 tuning; multi-feature xG integrated; forced shots added
-next: [stamina-integration-final, pass-success-raise, xg-scale-align]
+root:
+  id: engine-core
+  title: Engine graph + legacy convergence
+  status: DOING
+  updated: 2025-08-11
+  owner: core
+  notes: |
+    Phases 1-3 DONE; phase4-6 tuning; multi-feature xG integrated; forced shots added
+  phases:
+    - id: phase1_roles_coords
+      status: DONE
+      delivered: [role_enum, player.role, coord_assignment]
+    - id: phase2_basic_micro_engine
+      status: DONE
+      delivered: [short_pass_selection, simple_shot, flag_switch]
+    - id: phase3_weighted_edges_intercepts
+      status: DONE
+      delivered: [congestion_penalty, multi_def_intercept_v2]
+    - id: phase4_extended_actions
+      status: TUNE
+      delivered: [dribble,long_pass,back_pass,hold,launch,adaptive_boost]
+      pending: [action_weight_rebalance, raise_dribble_attempts]
+    - id: phase5_abilities_core
+      status: TUNE
+      delivered: [VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG]
+      pending: [MRK,AER,REF,COM,HDR,CLT,SPR]
+    - id: phase6_stamina_model
+      status: DOING
+      delivered: [variable_decay_split,ENG_variable_reduction]
+      pending: [position_decay_modulators, sprint_cost_hook]
+    - id: phase7_momentum_xg_alignment
+      status: DOING
+      pending: [xg_scale_adjust, momentum_coeff_finalize]
+    - id: phase8_ui_flag_toggle
+      status: DONE
+      delivered: [experimental_flag_persisted]
+    - id: phase9_legacy_deprecation
+      status: TODO
+  metrics_current: { pass_pct: 71.9, xg_avg: 2.40, goals_avg: 2.38, dribble_att: 3.8, dribble_succ_pct: 50.5 }
+  metrics_targets: { pass_pct: [0.75,0.88], xg_avg: [2.4,3.2], goals_avg: [2.4,3.2], dribble_att: [10,20], dribble_succ_pct: [45,60] }
+  open_questions: [intercept_vs_pressing_overlap, dribble_volume_increase_method]
+  next_batch_priority_order: [phase6_stamina_model, phase4_extended_actions, phase5_abilities_core]
+  risks: [tuning-complexity-spike, web-performance-microticks]

@@ -1,10 +1,33 @@
-id: player-generation
-title: Tiered player factory
-status: DOING
-updated: 2025-08-11
-owner: core
-deps: []
-metrics: { tiers_impl: 4, abilities_impl: 8 }
-notes: |
-  Height/foot/tier fields live; correlated attributes baseline
-next: [add-advanced-ability-hooks, balance-tier-distribution]
+root:
+  id: player-generation
+  title: Player generation & progression
+  status: DOING
+  updated: 2025-08-11
+  owner: core
+  notes: |
+    Base tiers & correlated abilities done; tune height/foot bias; design progression loop
+  phases:
+    - id: base-factory
+      status: DONE
+      delivered: [tier-definition, correlated-distribution, ability-assignment]
+      pending: []
+    - id: balance-tuning
+      status: DOING
+      delivered: [height-range, footedness-prob]
+      pending: [footedness-balance]
+    - id: progression-loop
+      status: TODO
+      delivered: []
+      pending: [season-growth-model, training-events, aging-curves]
+  components:
+    - id: tiers
+      implemented: [tier1,tier2,tier3,tier4]
+      pending: []
+    - id: abilities
+      implemented: [VIS,PAS,DRB,FIN,WALL,CAT,CAP,ENG]
+      pending: [MRK,AER,REF,COM,HDR,CLT,SPR]
+  metrics_current: { tiers_impl: 4, abilities_impl: 8 }
+  metrics_targets: { tiers_impl: 4, abilities_impl: 15 }
+  open_questions: [progression-rate-formula, aging-decline-trigger]
+  next_batch_priority_order: [footedness-balance, progression-design-draft]
+  risks: [ability-power-creep]

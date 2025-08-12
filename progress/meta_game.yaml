@@ -1,10 +1,37 @@
-id: meta-game-loop
-title: Season & economy loop
-status: TODO
-updated: 2025-08-11
-owner: core
-deps: [player-generation]
-metrics: { seasons_impl: 0 }
-notes: |
-  No season/economy yet; market basic only
-next: [design-pack-draft, currency-model, persistence-schema-v2]
+root:
+  id: meta-game-loop
+  title: Season & economy loop
+  status: TODO
+  updated: 2025-08-11
+  owner: core
+  notes: |
+    No season/economy yet; market basic only
+  phases:
+    - id: concept-spec
+      status: TODO
+      delivered: []
+      pending: [economy-pillars, pack-rarity-table]
+    - id: prototype-s1
+      status: TODO
+      delivered: []
+      pending: [season-schedule, reward-progression]
+    - id: live-tuning
+      status: TODO
+      delivered: []
+      pending: [telemetry-loop, inflation-guards]
+  macro_topics:
+    - id: economy
+      status: TODO
+      goal: Stable soft-currency loop
+      implemented: []
+      pending: [currency-sinks, currency-sources, pricing-model]
+    - id: packs
+      status: TODO
+      goal: Engaging acquisition
+      implemented: []
+      pending: [rarity-table, pity-timer, duplicate-protection]
+  metrics_current: { seasons_impl: 0 }
+  metrics_targets: { seasons_impl: 1 }
+  open_questions: [inflation-control, player-retention-drivers]
+  next_batch_priority_order: [design-pack-draft, currency-model, persistence-schema-v2]
+  risks: [tuning-complexity-spike]

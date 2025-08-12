@@ -49,6 +49,53 @@ Purpose:
 - Markdown = stable explanation / formulas / rationale.
 - YAML = living state (phase, metrics, dates, deps).
 
+Hierarchical Progress Schema (canonical):
+All progress YAML files must follow a root‑anchored structure inspired by the former `simulation_refactor_llm_progress.md` snapshot.
+
+Top-level keys (order fixed):
+```
+root:            # mandatory object
+  id: slug
+  title: Short Title
+  status: TODO|DOING|TUNE|DONE|DEFER|DROP
+  updated: YYYY-MM-DD
+  owner: handle|team
+  notes: | (optional multiline short lines)
+    line
+  phases:        # optional array (ordered incremental phases)
+    - id: phase-id
+      status: status
+      delivered: [items]
+      pending: [items]
+  macro_topics:  # optional array of broader tracks
+    - id: topic-id
+      status: status
+      goal: short phrase
+      implemented: [items]
+      pending: [items]
+  components:    # optional domain-specific groups (abilities, tiers, etc.)
+    - id: comp-id
+      implemented: [items]
+      pending: [items]
+  metrics_current: { key: value }   # current measured metrics (floats 3dp)
+  metrics_targets: { key: value|[min,max] }
+  open_questions: [question_slug,...]
+  next_batch_priority_order: [id1,id2,...]
+  risks:          # optional embedded light risk list (or use global risks.yaml)
+    - id: risk-id
+      impact: 1-5
+      likelihood: 1-5
+      note: short
+```
+
+Rules additions:
+- Every file holds exactly one `root` object.
+- Lists (`phases`, `macro_topics`, `components`) keep stable ordering (append only; deprecate via status DROP not deletion).
+- `metrics_current` reflects most recent batch; update atomically with `updated`.
+- Cross-file references use IDs (kebab-case) listed in `progress/INDEX.yaml`.
+- Prefer concise tokens; move narrative to Markdown.
+- If a previous flat schema existed, migrate into `root` preserving IDs.
+
 YAML KEY CONVENTION (fixed order for clean diffs):
 ```
 id: unique-slug
@@ -85,6 +132,7 @@ Update Process (PR Checklist):
 3. Model param changed? Update `engine_params.dart` + doc reference.
 4. Run `flutter analyze` + tests.
 5. Commit prefix: `[engine]`, `[graph]`, `[docs]`, `[progress]`, `[meta]`.
+6. If hierarchical schema changes structure (add phase/topic), reflect in related Markdown doc referencing it.
 
 ---
 ## 3. ARCHITECTURE & DESIGN PRINCIPLES
